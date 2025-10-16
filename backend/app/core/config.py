@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic import BaseSettings
 from typing import Optional
 
 
@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # Database
-    DATABASE_URL: str
+    DATABASE_URL: str = ""
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
