@@ -1,11 +1,14 @@
 from datetime import datetime, timedelta
 from typing import Optional, Annotated
 from jose import JWTError, jwt
-import hashlib
+from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.core.config import settings
+
+# Password hashing context (using pbkdf2_sha256 - pure Python, no compilation needed)
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -20,14 +23,13 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    # Simple SHA256 hash verification for development
-    hashed_input = hashlib.sha256(plain_password.encode('utf-8')).hexdigest()
-    return hashed_input == hashed_password
+    """Verify a password against a hashed password"""
+    return pwd_context.verify(plain_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
-    # Simple SHA256 hash for development (NOT for production!)
-    return hashlib.sha256(password.encode('utf-8')).hexdigest()
+    """Hash a password using pbkdf2_sha256"""
+    return pwd_context.hash(password)
 
 
 def decode_access_token(token: str):
