@@ -5,10 +5,10 @@
 ### 1. **백엔드 Firestore 마이그레이션**
 - ✅ `firebase-admin` 패키지 추가
 - ✅ Firestore 데이터베이스 헬퍼 생성 (`app/db/firestore.py`)
-- ✅ Auth API Firestore 버전 생성 (`app/api/v1/auth_firestore.py`)
-- ✅ Projects API Firestore 버전 생성 (`app/api/v1/projects_firestore.py`)
-- ✅ TestCases API Firestore 버전 생성 (`app/api/v1/testcases_firestore.py`)
-- ✅ Firestore용 메인 앱 생성 (`app/main_firestore.py`)
+- ✅ Auth API Firestore 버전 생성 (`app/api/v1/auth.py`)
+- ✅ Projects API Firestore 버전 생성 (`app/api/v1/projects.py`)
+- ✅ TestCases API Firestore 버전 생성 (`app/api/v1/testcases.py`)
+- ✅ Firestore용 메인 앱 생성 (`app/main.py`)
 - ✅ 보안 모듈에 Firestore 사용자 인증 추가
 
 ### 2. **데이터베이스 구조**
@@ -54,7 +54,7 @@ echo "SECRET_KEY=your-secret-key-min-32-characters-long" > .env
 echo "FIREBASE_SERVICE_ACCOUNT_PATH=firebase-service-account.json" >> .env
 
 # Firestore 버전 실행
-uvicorn app.main_firestore:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000
 
 # 테스트: http://localhost:8000/docs
 ```
@@ -88,7 +88,7 @@ git push -u origin main
 
 **Build**:
 - Build Command: `pip install -r requirements.txt`
-- Start Command: `uvicorn app.main_firestore:app --host 0.0.0.0 --port $PORT`
+- Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 
 **Environment Variables** (`firebase-service-account.json` 파일 내용 참조):
 ```
@@ -157,8 +157,8 @@ curl -X POST "https://tcms-backend.onrender.com/api/v1/auth/register" \
 |------|------|
 | `backend/requirements.txt` | Firebase Admin SDK 포함 |
 | `backend/app/db/firestore.py` | Firestore 헬퍼 함수 |
-| `backend/app/api/v1/*_firestore.py` | Firestore API 엔드포인트 |
-| `backend/app/main_firestore.py` | Firestore 메인 앱 |
+| `backend/app/api/v1/*.py` | Firestore API 엔드포인트 |
+| `backend/app/main.py` | Firestore 메인 앱 |
 | `FIREBASE_DEPLOYMENT_GUIDE.md` | 상세 배포 가이드 |
 
 ## 🔧 기술 스택
