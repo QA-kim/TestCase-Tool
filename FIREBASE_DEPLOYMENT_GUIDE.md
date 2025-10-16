@@ -88,8 +88,7 @@ FIREBASE_SERVICE_ACCOUNT_PATH=firebase-service-account.json
 #### Firestore 버전으로 실행
 
 ```bash
-# main_firestore.py를 main.py로 임시 변경하거나
-uvicorn app.main_firestore:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000
 ```
 
 #### 테스트
@@ -131,7 +130,7 @@ git push -u origin main
 
 **Build 설정**:
 - Build Command: `pip install -r requirements.txt`
-- Start Command: `uvicorn app.main_firestore:app --host 0.0.0.0 --port $PORT`
+- Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 
 **환경 변수** (Environment Variables 섹션에 추가):
 
