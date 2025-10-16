@@ -25,7 +25,10 @@
       "Bash(del tailwind.config.js)",
       "Bash(timeout 3 cd backend)",
       "Bash(npm run build:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
