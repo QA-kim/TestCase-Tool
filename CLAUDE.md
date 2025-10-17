@@ -4,81 +4,158 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **planning repository** for a Test Case Management System (TCMS) - a modern test management platform similar to TestRail. The repository currently contains only product requirement documents (PRD) and does not have any implemented codebase.
+This is a **fully implemented** Test Case Management System (TCMS) - a modern test management platform similar to TMS, with a complete MVP deployed and running in production.
 
-**Current Status**: Planning phase - no source code implementation exists yet.
+**Current Status**: MVP complete and deployed - Phase 1 implementation finished.
 
 ## Repository Structure
 
-- `claude/` - Contains product requirement documents in Korean
-  - `claude.md` - Full PRD with detailed feature specifications, technical architecture, roadmap, and budget planning
-  - `tcms-prd-summary.md` - Duplicate of the main PRD
-- `src/` - Empty directory (reserved for future implementation)
+- `backend/` - FastAPI backend with Firebase Firestore
+  - `app/api/v1/` - API endpoints (auth, projects, testcases)
+  - `app/core/` - Security and configuration
+  - `app/db/` - Firestore database helpers
+  - `app/schemas/` - Pydantic schemas with enums
+  - `create_admin.py` - Admin account creation script
+  - `requirements.txt` - Python dependencies
+- `frontend/` - React + TypeScript + Tailwind CSS v4
+  - `src/pages/` - Page components
+  - `src/components/` - Reusable components (Layout, ProtectedRoute)
+  - `src/contexts/` - AuthContext
+  - `src/services/` - API client
+- `claude/` - Product requirement documents (Korean)
+- `render.yaml` - Render.com deployment configuration
+- `CLAUDE.md` - This file
 
-## Product Vision
+## Deployed Services
 
-A TestRail-like platform targeting QA teams with:
-- Test case management (CRUD, versioning, templates)
-- Test execution tracking (planning, execution interface, result recording)
-- Reporting and analytics (dashboards, coverage reports, trend analysis)
-- Integrations (Jira, CI/CD pipelines, test automation frameworks, Slack/Teams)
-- Collaboration features (comments, reviews, real-time editing)
+- **Frontend**: https://testcase-e27a4.web.app (Firebase Hosting)
+- **Backend**: https://testcase-tool.onrender.com (Render.com)
+- **Database**: Firebase Firestore
+- **Cost**: $0/month (all using free tiers)
 
-## Planned Technical Architecture
+## Implemented Technical Stack
 
-### Frontend (Not Yet Implemented)
-- Framework: React 18+ / Vue.js 3+
-- Language: TypeScript
-- State Management: Redux / Vuex
-- UI Library: Material-UI / Ant Design
+### Frontend (✅ Implemented)
+- Framework: React 18 with TypeScript
+- Styling: Tailwind CSS v4
+- Routing: React Router
+- HTTP Client: Axios
+- Build Tool: Vite
+- UI Pattern: TMS-style 3-column layout
 
-### Backend (Not Yet Implemented)
-- Language: Node.js 18+ / Python 3.10+
-- Framework: Express.js / FastAPI
-- Architecture: Microservices
-- API: RESTful + GraphQL
+### Backend (✅ Implemented)
+- Language: Python 3.13
+- Framework: FastAPI 0.95.2
+- Database: Firebase Firestore (NoSQL)
+- Authentication: JWT tokens with Python-Jose
+- Password Hashing: pbkdf2_sha256 (pure Python, no Rust)
+- Validation: Pydantic 1.10.18
 
-### Database (Not Yet Implemented)
-- Primary: PostgreSQL 14+
-- Caching: Redis 7+
-- Search: Elasticsearch 8+
-- File Storage: S3-compatible
+### Infrastructure (✅ Deployed)
+- Backend Hosting: Render.com (free tier, 750 hours/month)
+- Frontend Hosting: Firebase Hosting
+- Database: Firebase Firestore (free tier, 1GB storage)
 
-### Infrastructure (Not Yet Implemented)
-- Containers: Docker
-- Orchestration: Kubernetes
-- CI/CD: GitLab CI / GitHub Actions
+## User Roles (✅ Implemented)
 
-## User Roles (Planned)
+Defined in `backend/app/schemas/user.py`:
+- **admin**: Full system management
+- **qa_manager**: Project management, test planning
+- **qa_engineer**: Test case creation and execution
+- **developer**: Read and comment access
+- **viewer**: Read-only access (default for new registrations)
 
-- **Admin**: Full system management
-- **QA Manager**: Project management, test planning
-- **QA Engineer**: Test case creation and execution
-- **Developer**: Read and comment access
-- **Viewer**: Read-only access
+## Implementation Status
 
-## Implementation Roadmap (Planned)
+### ✅ Phase 1 - MVP Complete
+- User authentication (JWT-based register/login)
+- Project management (CRUD operations)
+- Test case management (CRUD + version history)
+- Role-based access control (RBAC)
+- TMS-style UI with 3-column layout
+- Firestore integration
+- Deployed to production ($0/month)
 
-- **Phase 1 (1-3 months)**: MVP - Core test case management
-- **Phase 2 (4-6 months)**: Integrations and advanced reporting
-- **Phase 3 (7-9 months)**: Enterprise features (SSO, MFA, CI/CD)
-- **Phase 4 (10-12 months)**: AI features (test recommendations, failure prediction)
+### 🔄 Phase 2 - In Progress
+- Test execution management
+- Dashboard and statistics
+- Advanced reporting
+
+### 📅 Phase 3 - Planned
+- Jira integration
+- Email notifications
+- File attachments
+- Test automation framework integration
+
+### 📅 Phase 4 - Future
+- SSO/MFA
+- AI-powered test recommendations
+- Performance analytics
 
 ## Working with This Repository
 
-Since this is a planning repository with no code:
+### Key Technical Decisions Made
 
-1. **To implement features**: Reference the detailed specifications in `claude/claude.md`
-2. **To understand requirements**: Read the PRD sections on core features, technical specifications, and user roles
-3. **To plan development**: Follow the 4-phase roadmap outlined in the PRD
-4. **Language**: All documentation is in Korean
+1. **Database: Firestore (not PostgreSQL)**
+   - All IDs are strings, not integers
+   - No foreign key constraints
+   - Document-based, not relational
 
-## Next Steps for Implementation
+2. **Python Dependencies: Pure Python Only**
+   - No Rust-compiled packages (bcrypt, cryptography)
+   - Uses pbkdf2_sha256 for password hashing
+   - python-jose without [cryptography] extra
 
-When beginning development, you would need to:
-1. Initialize the chosen tech stack (React/Vue + Node.js/Python)
-2. Set up database schemas for test cases, test runs, projects, and users
-3. Implement authentication and RBAC
-4. Create the core test case management CRUD operations
-5. Build the test execution interface
-6. Develop reporting and dashboard functionality
+3. **Pydantic: v1.10.18 (not v2)**
+   - Compatible with Python 3.13
+   - pydantic-settings removed (using python-dotenv)
+
+4. **Frontend API URL**
+   - Development: `http://localhost:8000/api/v1`
+   - Production: `https://testcase-tool.onrender.com/api/v1`
+
+### Important Files
+
+- `backend/app/schemas/*.py` - All enums (UserRole, TestPriority, etc.) defined here
+- `backend/app/db/firestore.py` - Firestore helper class with CRUD operations
+- `backend/create_admin.py` - Creates admin user (admin@tcms.com / admin123)
+- `backend/requirements.txt` - Pure Python dependencies only
+- `render.yaml` - Render.com deployment configuration
+
+### Common Tasks
+
+#### Create Admin User
+```bash
+cd backend
+python create_admin.py
+```
+
+#### Local Development
+```bash
+# Backend
+cd backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+
+# Frontend
+cd frontend
+npm install
+npm run dev
+```
+
+#### Deploy
+- Backend: Push to GitHub → Render.com auto-deploys
+- Frontend: `npm run build && firebase deploy`
+
+### Environment Variables (Render.com)
+
+Required environment variables:
+- `SECRET_KEY` - JWT secret
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_PRIVATE_KEY_ID`
+- `FIREBASE_PRIVATE_KEY` (with \n, not actual newlines)
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_CLIENT_ID`
+- `FIREBASE_CLIENT_X509_CERT_URL`
