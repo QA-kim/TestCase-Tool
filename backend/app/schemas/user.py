@@ -1,7 +1,15 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
-from app.models.user import UserRole
+from enum import Enum
+
+
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    QA_MANAGER = "qa_manager"
+    QA_ENGINEER = "qa_engineer"
+    DEVELOPER = "developer"
+    VIEWER = "viewer"
 
 
 class UserBase(BaseModel):
