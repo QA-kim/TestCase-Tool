@@ -28,7 +28,8 @@
       "Bash(grep:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(./venv/Scripts/pip uninstall pydantic-settings -y)"
     ],
     "deny": [],
     "ask": []
