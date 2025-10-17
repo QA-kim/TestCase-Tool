@@ -286,9 +286,9 @@ export default function TestRuns() {
             />
 
             {/* Modal */}
-            <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] flex flex-col">
+            <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full max-h-[85vh] flex flex-col">
               {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0 bg-white">
                 <h3 className="text-xl font-semibold text-gray-900">
                   {editMode ? '테스트 실행 수정' : '새 테스트 실행'}
                 </h3>
@@ -301,7 +301,7 @@ export default function TestRuns() {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
                 <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
                   {/* Name */}
                   <div>
@@ -456,7 +456,7 @@ export default function TestRuns() {
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
+                <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200 flex-shrink-0">
                   <button
                     type="button"
                     onClick={handleClose}
