@@ -1,5 +1,59 @@
 # 테스트 케이스 관리 소프트웨어 - 제품 요구사항 문서 (PRD)
 
+## 🎯 현재 구현 상태 (2025년 1월)
+
+### ✅ 구현 완료 기능 (MVP - Phase 1)
+1. **사용자 인증 시스템**
+   - JWT 기반 회원가입/로그인
+   - 비밀번호 해싱 (pbkdf2_sha256)
+   - 5단계 역할 기반 접근 제어 (Admin, QA Manager, QA Engineer, Developer, Viewer)
+
+2. **프로젝트 관리**
+   - CRUD 작업 (생성, 조회, 수정, 삭제)
+   - 프로젝트 소유자 추적
+
+3. **테스트 케이스 관리**
+   - 기본 CRUD 작업
+   - 버전 히스토리 자동 저장
+   - 우선순위 관리 (Low, Medium, High, Critical)
+   - 테스트 타입 분류 (Functional, Regression, Smoke, Integration, Performance, Security)
+   - 프로젝트별 필터링
+
+4. **UI/UX**
+   - TMS 스타일 3단 레이아웃
+   - Tailwind CSS v4 기반 모던 디자인
+   - 반응형 웹 디자인
+
+### 🚀 배포 현황
+- **프론트엔드**: https://testcase-e27a4.web.app (Firebase Hosting)
+- **백엔드**: https://testcase-tool.onrender.com (Render.com)
+- **데이터베이스**: Firebase Firestore
+- **운영 비용**: $0/월 (무료 플랜 사용)
+
+### 📊 PRD 대비 구현률
+
+| 분야 | PRD 계획 | 현재 구현 | 구현률 | 상태 |
+|------|----------|-----------|--------|------|
+| 테스트 케이스 CRUD | ✅ | ✅ | 100% | 완료 |
+| 버전 관리 | ✅ | ✅ | 100% | 완료 |
+| 사용자 인증 | ✅ | ✅ | 100% | 완료 |
+| RBAC | ✅ | ✅ | 100% | 완료 |
+| 프로젝트 관리 | ✅ | ✅ | 100% | 완료 |
+| 리치 텍스트 에디터 | ✅ | ❌ | 0% | 계획 중 |
+| 파일 첨부 | ✅ | ❌ | 0% | 계획 중 |
+| 테스트 실행 관리 | ✅ | 🔄 | 30% | 진행 중 |
+| 대시보드/리포팅 | ✅ | ❌ | 0% | 계획 중 |
+| Jira 통합 | ✅ | ❌ | 0% | Phase 2 |
+| 이메일 알림 | ✅ | ❌ | 0% | Phase 2 |
+
+### 🛠️ 기술 스택 (실제 구현)
+- **백엔드**: Python 3.13 + FastAPI 0.95.2 + Firebase Firestore
+- **프론트엔드**: React 18 + TypeScript + Tailwind CSS v4
+- **인증**: JWT + pbkdf2_sha256
+- **호스팅**: Render.com (백엔드) + Firebase Hosting (프론트엔드)
+
+---
+
 ## 1. 제품 개요
 
 ### 1.1 제품명
