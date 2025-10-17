@@ -1,7 +1,23 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
-from app.models.testcase import TestPriority, TestType
+from enum import Enum
+
+
+class TestPriority(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class TestType(str, Enum):
+    FUNCTIONAL = "functional"
+    REGRESSION = "regression"
+    SMOKE = "smoke"
+    INTEGRATION = "integration"
+    PERFORMANCE = "performance"
+    SECURITY = "security"
 
 
 class TestFolderBase(BaseModel):

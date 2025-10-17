@@ -1,7 +1,23 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
-from app.models.testrun import TestRunStatus, TestResultStatus
+from enum import Enum
+
+
+class TestRunStatus(str, Enum):
+    PLANNED = "planned"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    BLOCKED = "blocked"
+
+
+class TestResultStatus(str, Enum):
+    UNTESTED = "untested"
+    PASSED = "passed"
+    FAILED = "failed"
+    BLOCKED = "blocked"
+    RETEST = "retest"
+    SKIPPED = "skipped"
 
 
 class TestRunBase(BaseModel):
