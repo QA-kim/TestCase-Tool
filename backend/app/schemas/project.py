@@ -18,8 +18,8 @@ class ProjectUpdate(BaseModel):
 
 
 class ProjectInDB(ProjectBase):
-    id: int
-    owner_id: int
+    id: str  # Firestore uses string IDs
+    owner_id: str  # Firestore uses string IDs
     created_at: datetime
     updated_at: datetime
 

@@ -23,29 +23,29 @@ class TestResultStatus(str, Enum):
 class TestRunBase(BaseModel):
     name: str
     description: Optional[str] = None
-    assignee_id: Optional[int] = None
+    assignee_id: Optional[str] = None  # Firestore uses string IDs
     environment: Optional[str] = None
     milestone: Optional[str] = None
 
 
 class TestRunCreate(TestRunBase):
-    project_id: int
-    test_case_ids: list[int] = []
+    project_id: str  # Firestore uses string IDs
+    test_case_ids: list[str] = []  # Firestore uses string IDs
 
 
 class TestRunUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
-    assignee_id: Optional[int] = None
+    assignee_id: Optional[str] = None  # Firestore uses string IDs
     status: Optional[TestRunStatus] = None
     environment: Optional[str] = None
     milestone: Optional[str] = None
-    test_case_ids: Optional[list[int]] = None
+    test_case_ids: Optional[list[str]] = None  # Firestore uses string IDs
 
 
 # Simple TestCase schema to avoid circular imports
 class TestCaseSimple(BaseModel):
-    id: int
+    id: str  # Firestore uses string IDs
     title: str
     priority: str
     test_type: str
@@ -55,8 +55,8 @@ class TestCaseSimple(BaseModel):
 
 
 class TestRunInDB(TestRunBase):
-    id: int
-    project_id: int
+    id: str  # Firestore uses string IDs
+    project_id: str  # Firestore uses string IDs
     status: TestRunStatus
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
@@ -83,9 +83,9 @@ class TestResultBase(BaseModel):
 
 
 class TestResultCreate(TestResultBase):
-    test_run_id: int
-    test_case_id: int
-    tester_id: Optional[int] = None
+    test_run_id: str  # Firestore uses string IDs
+    test_case_id: str  # Firestore uses string IDs
+    tester_id: Optional[str] = None  # Firestore uses string IDs
 
 
 class TestResultUpdate(BaseModel):
@@ -97,10 +97,10 @@ class TestResultUpdate(BaseModel):
 
 
 class TestResultInDB(TestResultBase):
-    id: int
-    test_run_id: int
-    test_case_id: int
-    tester_id: Optional[int] = None
+    id: str  # Firestore uses string IDs
+    test_run_id: str  # Firestore uses string IDs
+    test_case_id: str  # Firestore uses string IDs
+    tester_id: Optional[str] = None  # Firestore uses string IDs
     tested_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
