@@ -23,22 +23,22 @@ class TestType(str, Enum):
 class TestFolderBase(BaseModel):
     name: str
     description: Optional[str] = None
-    parent_id: Optional[int] = None
+    parent_id: Optional[str] = None  # Firestore uses string IDs
 
 
 class TestFolderCreate(TestFolderBase):
-    project_id: int
+    project_id: str  # Firestore uses string IDs
 
 
 class TestFolderUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
-    parent_id: Optional[int] = None
+    parent_id: Optional[str] = None  # Firestore uses string IDs
 
 
 class TestFolderInDB(TestFolderBase):
-    id: int
-    project_id: int
+    id: str  # Firestore uses string IDs
+    project_id: str  # Firestore uses string IDs
     created_at: datetime
     updated_at: datetime
 
@@ -59,11 +59,11 @@ class TestCaseBase(BaseModel):
     priority: TestPriority = TestPriority.MEDIUM
     test_type: TestType = TestType.FUNCTIONAL
     tags: Optional[str] = None
-    folder_id: Optional[int] = None
+    folder_id: Optional[str] = None  # Firestore uses string IDs
 
 
 class TestCaseCreate(TestCaseBase):
-    project_id: int
+    project_id: str  # Firestore uses string IDs
 
 
 class TestCaseUpdate(BaseModel):
@@ -75,13 +75,13 @@ class TestCaseUpdate(BaseModel):
     priority: Optional[TestPriority] = None
     test_type: Optional[TestType] = None
     tags: Optional[str] = None
-    folder_id: Optional[int] = None
+    folder_id: Optional[str] = None  # Firestore uses string IDs
     change_note: Optional[str] = None  # For version history
 
 
 class TestCaseInDB(TestCaseBase):
-    id: int
-    project_id: int
+    id: str  # Firestore uses string IDs
+    project_id: str  # Firestore uses string IDs
     created_at: datetime
     updated_at: datetime
 

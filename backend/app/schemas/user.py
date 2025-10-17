@@ -32,7 +32,7 @@ class UserUpdate(BaseModel):
 
 
 class UserInDB(UserBase):
-    id: int
+    id: str  # Firestore uses string IDs
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -51,4 +51,4 @@ class Token(BaseModel):
 
 
 class TokenPayload(BaseModel):
-    sub: Optional[int] = None
+    sub: Optional[str] = None  # Firestore uses string IDs
