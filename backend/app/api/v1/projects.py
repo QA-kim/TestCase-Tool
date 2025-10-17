@@ -13,7 +13,7 @@ def create_project(
     project_in: ProjectCreate,
     current_user: dict = Depends(get_current_user_firestore)
 ):
-    project_data = project_in.model_dump()
+    project_data = project_in.dict()  # Pydantic v1 uses .dict()
     project_data['owner_id'] = current_user['id']
 
     project = projects_collection.create(project_data)
@@ -57,7 +57,7 @@ def update_project(
             detail="Project not found"
         )
 
-    update_data = project_in.model_dump(exclude_unset=True)
+    update_data = project_in.dict(exclude_unset=True)  # Pydantic v1 uses .dict()
     projects_collection.update(project_id, update_data)
 
     # Return updated project

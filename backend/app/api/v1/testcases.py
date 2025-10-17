@@ -13,7 +13,7 @@ def create_testcase(
     testcase_in: TestCaseCreate,
     current_user: dict = Depends(get_current_user_firestore)
 ):
-    testcase_data = testcase_in.model_dump()
+    testcase_data = testcase_in.dict()  # Pydantic v1 uses .dict()
     testcase = testcases_collection.create(testcase_data)
     return testcase
 
@@ -76,12 +76,12 @@ def update_testcase(
         'priority': testcase.get('priority'),
         'test_type': testcase.get('test_type'),
         'changed_by': current_user['id'],
-        'change_note': testcase_in.model_dump().get('change_note', None)
+        'change_note': testcase_in.dict().get('change_note', None)  # Pydantic v1 uses .dict()
     }
     testcase_history_collection.create(history_data)
 
     # Update testcase
-    update_data = testcase_in.model_dump(exclude_unset=True)
+    update_data = testcase_in.dict(exclude_unset=True)  # Pydantic v1 uses .dict()
     if 'change_note' in update_data:
         del update_data['change_note']
 
