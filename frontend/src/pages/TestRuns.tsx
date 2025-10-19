@@ -11,15 +11,15 @@ export default function TestRuns() {
   const _isAdmin = user?.role === 'admin'
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
-  const [editId, setEditId] = useState<number | null>(null)
+  const [editId, setEditId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     status: 'planned',
     environment: '',
     milestone: '',
-    project_id: 1,
-    testcase_ids: [] as number[],
+    project_id: '',
+    testcase_ids: [] as string[],
   })
   const queryClient = useQueryClient()
 
@@ -49,7 +49,7 @@ export default function TestRuns() {
   )
 
   const updateMutation = useMutation(
-    ({ id, data }: { id: number; data: any }) => api.put(`/testruns/${id}`, data),
+    ({ id, data }: { id: string; data: any }) => api.put(`/testruns/${id}`, data),
     {
       onSuccess: () => {
         queryClient.invalidateQueries('testruns')
@@ -59,7 +59,7 @@ export default function TestRuns() {
   )
 
   const deleteMutation = useMutation(
-    (id: number) => api.delete(`/testruns/${id}`),
+    (id: string) => api.delete(`/testruns/${id}`),
     {
       onSuccess: () => {
         queryClient.invalidateQueries('testruns')
@@ -77,7 +77,7 @@ export default function TestRuns() {
       status: 'planned',
       environment: '',
       milestone: '',
-      project_id: projects?.[0]?.id || 1,
+      project_id: projects?.[0]?.id || '',
       testcase_ids: [],
     })
   }
@@ -106,7 +106,7 @@ export default function TestRuns() {
     }
   }
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     if (window.confirm('정말 삭제하시겠습니까?')) {
       deleteMutation.mutate(id)
     }
@@ -144,7 +144,7 @@ export default function TestRuns() {
   }, [testcases, formData.project_id])
 
   // Toggle test case selection
-  const handleTestCaseToggle = (testcaseId: number) => {
+  const handleTestCaseToggle = (testcaseId: string) => {
     setFormData(prev => ({
       ...prev,
       testcase_ids: prev.testcase_ids.includes(testcaseId)
@@ -162,7 +162,19 @@ export default function TestRuns() {
           <p className="text-gray-600">전체 {testruns?.length || 0}개의 테스트 실행</p>
         </div>
         <button
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            // Reset form and set first project as default
+            setFormData({
+              name: '',
+              description: '',
+              status: 'planned',
+              environment: '',
+              milestone: '',
+              project_id: projects?.[0]?.id || '',
+              testcase_ids: [],
+            })
+            setOpen(true)
+          }}
           className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -394,9 +406,13 @@ export default function TestRuns() {
                     <select
                       id="project_id"
                       value={formData.project_id}
-                      onChange={(e) => setFormData({ ...formData, project_id: Number(e.target.value), testcase_ids: [] })}
+                      onChange={(e) => setFormData({ ...formData, project_id: e.target.value, testcase_ids: [] })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                      required
                     >
+                      {!formData.project_id && (
+                        <option value="">프로젝트를 선택하세요</option>
+                      )}
                       {projects?.length === 0 ? (
                         <option value="">프로젝트가 없습니다</option>
                       ) : (

@@ -747,18 +747,3 @@ TestCaseHistory {
 1.1  | 2024-01-20 | 기술 스택 확정 | Dev Team
 1.2  | 2024-01-25 | UI/UX 요구사항 추가 | Design Team
 ```
-
----
-
-**문서 정보**
-- 문서명: 테스트 케이스 관리 소프트웨어 PRD
-- 버전: 1.2
-- 작성일: 2024-01-15
-- 최종 수정일: 2024-01-25
-- 상태: 검토 완료
-- 담당자: Product Manager
-
-**연락처**
-- 제품 문의: product@tcms.com
-- 기술 문의: tech@tcms.com
-- 일반 문의: info@tcms.com
