@@ -21,6 +21,48 @@ export default function Projects() {
     return response.data
   })
 
+  const { data: testcases } = useQuery('testcases', async () => {
+    const response = await api.get('/testcases/')
+    return response.data
+  })
+
+  // Count test cases per project
+  const getTestCaseCount = (projectId: string) => {
+    if (!testcases) return 0
+    return testcases.filter((tc: any) => tc.project_id === projectId).length
+  }
+
+  // Get daily test case trend for a project (last 7 days)
+  const getTestCaseTrend = (projectId: string) => {
+    if (!testcases) return []
+
+    const projectTestCases = testcases.filter((tc: any) => tc.project_id === projectId)
+    const days = 7
+    const trend = []
+    const now = new Date()
+
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(now)
+      date.setDate(date.getDate() - i)
+      date.setHours(0, 0, 0, 0)
+
+      const nextDate = new Date(date)
+      nextDate.setDate(nextDate.getDate() + 1)
+
+      const count = projectTestCases.filter((tc: any) => {
+        const createdAt = new Date(tc.created_at)
+        return createdAt >= date && createdAt < nextDate
+      }).length
+
+      trend.push({
+        date: date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }),
+        count
+      })
+    }
+
+    return trend
+  }
+
   const createMutation = useMutation(
     (data: any) => api.post('/projects/', data),
     {
@@ -195,9 +237,13 @@ export default function Projects() {
                       </div>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600 line-clamp-2">
+                  <p className="text-sm text-gray-600 line-clamp-2 mb-3">
                     {project.description || '설명이 없습니다.'}
                   </p>
+                  <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+                    <span className="text-xs text-gray-500">테스트 케이스:</span>
+                    <span className="text-sm font-semibold text-blue-600">{getTestCaseCount(project.id)}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -246,6 +292,12 @@ export default function Projects() {
                 <h3 className="text-sm font-semibold text-gray-700 mb-2">프로젝트 정보</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
+                    <span className="text-gray-500">테스트 케이스</span>
+                    <span className="text-gray-900 font-semibold">
+                      {getTestCaseCount(selectedProject.id)}개
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-gray-500">생성일</span>
                     <span className="text-gray-900">
                       {new Date(selectedProject.created_at).toLocaleDateString('ko-KR')}
@@ -257,6 +309,32 @@ export default function Projects() {
                       {new Date(selectedProject.updated_at).toLocaleDateString('ko-KR')}
                     </span>
                   </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">테스트 케이스 추이 (최근 7일)</h3>
+                <div className="space-y-2">
+                  {getTestCaseTrend(selectedProject.id).map((item, index) => {
+                    const maxCount = Math.max(...getTestCaseTrend(selectedProject.id).map(d => d.count), 1)
+                    const barWidth = (item.count / maxCount) * 100
+
+                    return (
+                      <div key={index} className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500 w-16 text-right">{item.date}</span>
+                        <div className="flex-1 h-6 bg-gray-100 rounded overflow-hidden">
+                          <div
+                            className="h-full bg-blue-500 transition-all duration-300 flex items-center justify-end pr-2"
+                            style={{ width: `${barWidth}%` }}
+                          >
+                            {item.count > 0 && (
+                              <span className="text-xs text-white font-medium">{item.count}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </div>
