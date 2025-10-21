@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { ArrowLeft, CheckCircle, XCircle, MinusCircle, Ban, Clock, History, User } from 'lucide-react'
+import { ArrowLeft, CheckCircle, XCircle, MinusCircle, Ban, Clock, History, User, ChevronDown } from 'lucide-react'
 import api from '../lib/axios'
 
 export default function TestRunDetail() {
@@ -9,6 +9,18 @@ export default function TestRunDetail() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [selectedHistoryTestCase, setSelectedHistoryTestCase] = useState<string | null>(null)
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openDropdown && !(event.target as Element).closest('.relative')) {
+        setOpenDropdown(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [openDropdown])
 
   const { data: testrun, isLoading } = useQuery(['testrun', id], async () => {
     const response = await api.get(`/testruns/${id}`)
@@ -64,6 +76,38 @@ export default function TestRunDetail() {
     } else {
       createResultMutation.mutate(data)
     }
+
+    setOpenDropdown(null)
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'passed':
+        return '통과'
+      case 'failed':
+        return '실패'
+      case 'blocked':
+        return '테스트불가'
+      case 'skipped':
+        return '스킵'
+      default:
+        return '미실행'
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'passed':
+        return 'text-green-700 bg-green-50 border-green-300'
+      case 'failed':
+        return 'text-red-700 bg-red-50 border-red-300'
+      case 'blocked':
+        return 'text-orange-700 bg-orange-50 border-orange-300'
+      case 'skipped':
+        return 'text-yellow-700 bg-yellow-50 border-yellow-300'
+      default:
+        return 'text-gray-700 bg-gray-50 border-gray-300'
+    }
   }
 
   const getStatusIcon = (status: string) => {
@@ -118,6 +162,7 @@ export default function TestRunDetail() {
   const totalCount = testRunTestCases.length
   const testedCount = results?.length || 0
   const progress = totalCount > 0 ? Math.round((testedCount / totalCount) * 100) : 0
+  const passRate = totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 0
 
   const selectedResult = selectedHistoryTestCase
     ? results?.find((r: any) => r.test_case_id === selectedHistoryTestCase)
@@ -151,7 +196,7 @@ export default function TestRunDetail() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
         {/* Progress Card */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="text-sm text-gray-500 mb-2">진행률</div>
@@ -160,6 +205,18 @@ export default function TestRunDetail() {
             <div
               className="bg-blue-600 h-full rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+        </div>
+
+        {/* Pass Rate Card */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="text-sm text-gray-500 mb-2">통과율</div>
+          <div className="text-3xl font-bold text-green-600 mb-3">{passRate}%</div>
+          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div
+              className="bg-green-600 h-full rounded-full transition-all duration-300"
+              style={{ width: `${passRate}%` }}
             ></div>
           </div>
         </div>
@@ -196,11 +253,11 @@ export default function TestRunDetail() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">제목</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">수행방법</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">우선순위</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">테스트 결과</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">히스토리</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-[30%]">제목</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-[25%]">수행방법</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-[10%]">우선순위</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-[20%]">테스트 결과</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-[15%]">히스토리</th>
                 </tr>
               </thead>
               <tbody>
@@ -243,55 +300,53 @@ export default function TestRunDetail() {
                           </span>
                         </td>
                         <td className="py-4 px-4">
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="relative">
                             <button
-                              onClick={() => handleStatusClick(testcase.id, 'passed')}
+                              onClick={() => setOpenDropdown(openDropdown === testcase.id ? null : testcase.id)}
                               disabled={createResultMutation.isLoading || updateResultMutation.isLoading}
-                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                                result?.status === 'passed'
-                                  ? 'bg-green-500 text-white border-2 border-green-600 shadow-sm'
-                                  : 'bg-green-50 text-green-700 border border-green-300 hover:bg-green-100'
-                              } disabled:opacity-50`}
+                              className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                                getStatusColor(result?.status || 'untested')
+                              } hover:opacity-80 disabled:opacity-50`}
                             >
-                              <CheckCircle className="w-3 h-3" />
-                              통과
+                              <span className="flex items-center gap-2">
+                                {getStatusIcon(result?.status || 'untested')}
+                                {getStatusLabel(result?.status || 'untested')}
+                              </span>
+                              <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === testcase.id ? 'rotate-180' : ''}`} />
                             </button>
-                            <button
-                              onClick={() => handleStatusClick(testcase.id, 'failed')}
-                              disabled={createResultMutation.isLoading || updateResultMutation.isLoading}
-                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                                result?.status === 'failed'
-                                  ? 'bg-red-500 text-white border-2 border-red-600 shadow-sm'
-                                  : 'bg-red-50 text-red-700 border border-red-300 hover:bg-red-100'
-                              } disabled:opacity-50`}
-                            >
-                              <XCircle className="w-3 h-3" />
-                              실패
-                            </button>
-                            <button
-                              onClick={() => handleStatusClick(testcase.id, 'blocked')}
-                              disabled={createResultMutation.isLoading || updateResultMutation.isLoading}
-                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                                result?.status === 'blocked'
-                                  ? 'bg-orange-500 text-white border-2 border-orange-600 shadow-sm'
-                                  : 'bg-orange-50 text-orange-700 border border-orange-300 hover:bg-orange-100'
-                              } disabled:opacity-50`}
-                            >
-                              <Ban className="w-3 h-3" />
-                              불가
-                            </button>
-                            <button
-                              onClick={() => handleStatusClick(testcase.id, 'skipped')}
-                              disabled={createResultMutation.isLoading || updateResultMutation.isLoading}
-                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                                result?.status === 'skipped'
-                                  ? 'bg-yellow-500 text-white border-2 border-yellow-600 shadow-sm'
-                                  : 'bg-yellow-50 text-yellow-700 border border-yellow-300 hover:bg-yellow-100'
-                              } disabled:opacity-50`}
-                            >
-                              <MinusCircle className="w-3 h-3" />
-                              스킵
-                            </button>
+
+                            {openDropdown === testcase.id && (
+                              <div className="absolute z-10 mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-200 py-1 max-h-48 overflow-y-auto">
+                                <button
+                                  onClick={() => handleStatusClick(testcase.id, 'passed')}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-green-700 hover:bg-green-50 transition-colors"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                  통과
+                                </button>
+                                <button
+                                  onClick={() => handleStatusClick(testcase.id, 'failed')}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                  실패
+                                </button>
+                                <button
+                                  onClick={() => handleStatusClick(testcase.id, 'blocked')}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-orange-700 hover:bg-orange-50 transition-colors"
+                                >
+                                  <Ban className="w-4 h-4" />
+                                  테스트불가
+                                </button>
+                                <button
+                                  onClick={() => handleStatusClick(testcase.id, 'skipped')}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-yellow-700 hover:bg-yellow-50 transition-colors"
+                                >
+                                  <MinusCircle className="w-4 h-4" />
+                                  스킵
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td className="py-4 px-4">
