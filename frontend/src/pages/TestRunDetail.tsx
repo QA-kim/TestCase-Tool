@@ -197,9 +197,9 @@ export default function TestRunDetail() {
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">제목</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">수행방법</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">우선순위</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">상태</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">테스트 결과 입력</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">테스트 결과</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">히스토리</th>
                 </tr>
               </thead>
@@ -226,6 +226,13 @@ export default function TestRunDetail() {
                             <div className="text-xs text-gray-500 mt-1 line-clamp-2">{testcase.description}</div>
                           )}
                         </td>
+                        <td className="py-4 px-4">
+                          {testcase.steps ? (
+                            <div className="text-xs text-gray-600 max-w-xs line-clamp-3">{testcase.steps}</div>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </td>
                         <td className="py-4 px-4 text-sm">
                           <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
                             testcase.priority === 'high' ? 'bg-red-100 text-red-800 border-red-300' :
@@ -235,67 +242,54 @@ export default function TestRunDetail() {
                             {testcase.priority}
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-sm">
-                          {result ? (
-                            <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg w-fit ${
-                              result.status === 'passed' ? 'text-green-600' :
-                              result.status === 'failed' ? 'text-red-600' :
-                              result.status === 'blocked' ? 'text-orange-600' :
-                              result.status === 'skipped' ? 'text-yellow-600' :
-                              'text-gray-600'
-                            }`}>
-                              {getStatusIcon(result.status)}
-                              <span className={`text-xs font-medium ${
-                                result.status === 'passed' ? 'text-green-800' :
-                                result.status === 'failed' ? 'text-red-800' :
-                                result.status === 'blocked' ? 'text-orange-800' :
-                                result.status === 'skipped' ? 'text-yellow-800' :
-                                'text-gray-800'
-                              }`}>
-                                {result.status === 'passed' ? '통과' :
-                                 result.status === 'failed' ? '실패' :
-                                 result.status === 'blocked' ? '테스트불가' :
-                                 result.status === 'skipped' ? '스킵' : '미실행'}
-                              </span>
-                            </span>
-                          ) : (
-                            <span className="px-2.5 py-1 rounded-full text-xs font-medium border bg-gray-50 text-gray-600 border-gray-300">
-                              미실행
-                            </span>
-                          )}
-                        </td>
                         <td className="py-4 px-4">
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-1.5">
                             <button
                               onClick={() => handleStatusClick(testcase.id, 'passed')}
                               disabled={createResultMutation.isLoading || updateResultMutation.isLoading}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-green-50 text-green-700 border border-green-300 hover:bg-green-100 disabled:opacity-50"
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                                result?.status === 'passed'
+                                  ? 'bg-green-500 text-white border-2 border-green-600 shadow-sm'
+                                  : 'bg-green-50 text-green-700 border border-green-300 hover:bg-green-100'
+                              } disabled:opacity-50`}
                             >
-                              <CheckCircle className="w-3.5 h-3.5" />
+                              <CheckCircle className="w-3 h-3" />
                               통과
                             </button>
                             <button
                               onClick={() => handleStatusClick(testcase.id, 'failed')}
                               disabled={createResultMutation.isLoading || updateResultMutation.isLoading}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-red-50 text-red-700 border border-red-300 hover:bg-red-100 disabled:opacity-50"
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                                result?.status === 'failed'
+                                  ? 'bg-red-500 text-white border-2 border-red-600 shadow-sm'
+                                  : 'bg-red-50 text-red-700 border border-red-300 hover:bg-red-100'
+                              } disabled:opacity-50`}
                             >
-                              <XCircle className="w-3.5 h-3.5" />
+                              <XCircle className="w-3 h-3" />
                               실패
                             </button>
                             <button
                               onClick={() => handleStatusClick(testcase.id, 'blocked')}
                               disabled={createResultMutation.isLoading || updateResultMutation.isLoading}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-orange-50 text-orange-700 border border-orange-300 hover:bg-orange-100 disabled:opacity-50"
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                                result?.status === 'blocked'
+                                  ? 'bg-orange-500 text-white border-2 border-orange-600 shadow-sm'
+                                  : 'bg-orange-50 text-orange-700 border border-orange-300 hover:bg-orange-100'
+                              } disabled:opacity-50`}
                             >
-                              <Ban className="w-3.5 h-3.5" />
-                              테스트불가
+                              <Ban className="w-3 h-3" />
+                              불가
                             </button>
                             <button
                               onClick={() => handleStatusClick(testcase.id, 'skipped')}
                               disabled={createResultMutation.isLoading || updateResultMutation.isLoading}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-yellow-50 text-yellow-700 border border-yellow-300 hover:bg-yellow-100 disabled:opacity-50"
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                                result?.status === 'skipped'
+                                  ? 'bg-yellow-500 text-white border-2 border-yellow-600 shadow-sm'
+                                  : 'bg-yellow-50 text-yellow-700 border border-yellow-300 hover:bg-yellow-100'
+                              } disabled:opacity-50`}
                             >
-                              <MinusCircle className="w-3.5 h-3.5" />
+                              <MinusCircle className="w-3 h-3" />
                               스킵
                             </button>
                           </div>
