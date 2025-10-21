@@ -57,6 +57,7 @@ class TestCaseSimple(BaseModel):
 class TestRunInDB(TestRunBase):
     id: str  # Firestore uses string IDs
     project_id: str  # Firestore uses string IDs
+    test_case_ids: List[str] = []  # Firestore uses string IDs
     status: TestRunStatus
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
@@ -68,10 +69,7 @@ class TestRunInDB(TestRunBase):
 
 
 class TestRun(TestRunInDB):
-    testcases: List[TestCaseSimple] = []
-
-    class Config:
-        from_attributes = True
+    pass
 
 
 class TestResultBase(BaseModel):
