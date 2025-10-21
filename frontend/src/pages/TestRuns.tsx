@@ -19,7 +19,7 @@ export default function TestRuns() {
     environment: '',
     milestone: '',
     project_id: '',
-    testcase_ids: [] as string[],
+    test_case_ids: [] as string[],
   })
   const queryClient = useQueryClient()
 
@@ -78,7 +78,7 @@ export default function TestRuns() {
       environment: '',
       milestone: '',
       project_id: projects?.[0]?.id || '',
-      testcase_ids: [],
+      test_case_ids: [],
     })
   }
 
@@ -92,7 +92,7 @@ export default function TestRuns() {
       environment: testrun.environment || '',
       milestone: testrun.milestone || '',
       project_id: testrun.project_id,
-      testcase_ids: testrun.testcase_ids || [],
+      test_case_ids: testrun.test_case_ids || [],
     })
     setOpen(true)
   }
@@ -147,9 +147,9 @@ export default function TestRuns() {
   const handleTestCaseToggle = (testcaseId: string) => {
     setFormData(prev => ({
       ...prev,
-      testcase_ids: prev.testcase_ids.includes(testcaseId)
-        ? prev.testcase_ids.filter(id => id !== testcaseId)
-        : [...prev.testcase_ids, testcaseId]
+      test_case_ids: prev.test_case_ids.includes(testcaseId)
+        ? prev.test_case_ids.filter(id => id !== testcaseId)
+        : [...prev.test_case_ids, testcaseId]
     }))
   }
 
@@ -171,7 +171,7 @@ export default function TestRuns() {
               environment: '',
               milestone: '',
               project_id: projects?.[0]?.id || '',
-              testcase_ids: [],
+              test_case_ids: [],
             })
             setOpen(true)
           }}
@@ -240,15 +240,21 @@ export default function TestRuns() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      {testrun.testcases?.length > 0 ? (
+                      {testrun.test_case_ids?.length > 0 ? (
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200">
-                            {testrun.testcases.length}개
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                            {testrun.test_case_ids.length}개
                           </span>
-                          <span className="text-sm text-gray-600 truncate max-w-xs">
-                            {testrun.testcases.slice(0, 2).map((tc: any) => tc.title).join(', ')}
-                            {testrun.testcases.length > 2 && ` 외 ${testrun.testcases.length - 2}개`}
-                          </span>
+                          {testcases && (
+                            <span className="text-sm text-gray-600 truncate max-w-xs">
+                              {testrun.test_case_ids
+                                .slice(0, 2)
+                                .map((tcId: string) => testcases.find((tc: any) => tc.id === tcId)?.title)
+                                .filter(Boolean)
+                                .join(', ')}
+                              {testrun.test_case_ids.length > 2 && ` 외 ${testrun.test_case_ids.length - 2}개`}
+                            </span>
+                          )}
                         </div>
                       ) : (
                         <span className="text-gray-500">-</span>
@@ -298,10 +304,10 @@ export default function TestRuns() {
             />
 
             {/* Modal */}
-            <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full max-h-[85vh] flex flex-col">
+            <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full h-[90vh] flex flex-col">
               {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0 bg-white">
-                <h3 className="text-xl font-semibold text-gray-900">
+              <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 flex-shrink-0 bg-white">
+                <h3 className="text-lg font-semibold text-gray-900">
                   {editMode ? '테스트 실행 수정' : '새 테스트 실행'}
                 </h3>
                 <button
@@ -313,63 +319,75 @@ export default function TestRuns() {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-                <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
-                  {/* Name */}
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                      테스트 실행 이름 *
-                    </label>
-                    <input
-                      id="name"
-                      type="text"
-                      required
-                      autoFocus
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                      placeholder="테스트 실행 이름을 입력하세요"
-                    />
-                  </div>
+              <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="px-6 py-4 grid grid-cols-2 gap-4 overflow-y-auto flex-1">
+                  {/* Left Column */}
+                  <div className="space-y-3">
+                    {/* Name */}
+                    <div>
+                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                        테스트 실행 이름 *
+                      </label>
+                      <input
+                        id="name"
+                        type="text"
+                        required
+                        autoFocus
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                        placeholder="테스트 실행 이름을 입력하세요"
+                      />
+                    </div>
 
-                  {/* Description */}
-                  <div>
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                      설명
-                    </label>
-                    <textarea
-                      id="description"
-                      rows={4}
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all resize-none"
-                      placeholder="테스트 실행 설명을 입력하세요"
-                    />
-                  </div>
+                    {/* Status */}
+                    <div>
+                      <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                        상태 *
+                      </label>
+                      <select
+                        id="status"
+                        value={formData.status}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      >
+                        <option value="planned">계획됨</option>
+                        <option value="in_progress">진행 중</option>
+                        <option value="completed">완료됨</option>
+                        <option value="cancelled">취소됨</option>
+                      </select>
+                    </div>
 
-                  {/* Status */}
-                  <div>
-                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-                      상태 *
-                    </label>
-                    <select
-                      id="status"
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                    >
-                      <option value="planned">계획됨</option>
-                      <option value="in_progress">진행 중</option>
-                      <option value="completed">완료됨</option>
-                      <option value="cancelled">취소됨</option>
-                    </select>
-                  </div>
+                    {/* Project */}
+                    <div>
+                      <label htmlFor="project_id" className="block text-sm font-medium text-gray-700 mb-1">
+                        프로젝트 *
+                      </label>
+                      <select
+                        id="project_id"
+                        value={formData.project_id}
+                        onChange={(e) => setFormData({ ...formData, project_id: e.target.value, test_case_ids: [] })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                        required
+                      >
+                        {!formData.project_id && (
+                          <option value="">프로젝트를 선택하세요</option>
+                        )}
+                        {projects?.length === 0 ? (
+                          <option value="">프로젝트가 없습니다</option>
+                        ) : (
+                          projects?.map((project: any) => (
+                            <option key={project.id} value={project.id}>
+                              {project.name}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </div>
 
-                  {/* Environment and Milestone Row */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Environment */}
                     <div>
-                      <label htmlFor="environment" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="environment" className="block text-sm font-medium text-gray-700 mb-1">
                         환경
                       </label>
                       <input
@@ -377,14 +395,14 @@ export default function TestRuns() {
                         type="text"
                         value={formData.environment}
                         onChange={(e) => setFormData({ ...formData, environment: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                         placeholder="예: Production, Staging"
                       />
                     </div>
 
                     {/* Milestone */}
                     <div>
-                      <label htmlFor="milestone" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="milestone" className="block text-sm font-medium text-gray-700 mb-1">
                         마일스톤
                       </label>
                       <input
@@ -392,59 +410,52 @@ export default function TestRuns() {
                         type="text"
                         value={formData.milestone}
                         onChange={(e) => setFormData({ ...formData, milestone: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                         placeholder="예: v1.0.0, Sprint 5"
+                      />
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                        설명
+                      </label>
+                      <textarea
+                        id="description"
+                        rows={3}
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+                        placeholder="테스트 실행 설명을 입력하세요"
                       />
                     </div>
                   </div>
 
-                  {/* Project */}
+                  {/* Right Column - Test Cases */}
                   <div>
-                    <label htmlFor="project_id" className="block text-sm font-medium text-gray-700 mb-2">
-                      프로젝트 *
-                    </label>
-                    <select
-                      id="project_id"
-                      value={formData.project_id}
-                      onChange={(e) => setFormData({ ...formData, project_id: e.target.value, testcase_ids: [] })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                      required
-                    >
-                      {!formData.project_id && (
-                        <option value="">프로젝트를 선택하세요</option>
-                      )}
-                      {projects?.length === 0 ? (
-                        <option value="">프로젝트가 없습니다</option>
-                      ) : (
-                        projects?.map((project: any) => (
-                          <option key={project.id} value={project.id}>
-                            {project.name}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                  </div>
-
-                  {/* Test Cases */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       테스트 케이스 선택
+                      {formData.test_case_ids.length > 0 && (
+                        <span className="ml-2 text-sm text-primary-600 font-semibold">
+                          ({formData.test_case_ids.length}개 선택됨)
+                        </span>
+                      )}
                     </label>
-                    <div className="border border-gray-300 rounded-lg p-4 max-h-64 overflow-y-auto bg-gray-50">
+                    <div className="border border-gray-300 rounded-lg p-3 h-[calc(100%-2rem)] overflow-y-auto bg-gray-50">
                       {filteredTestCases.length === 0 ? (
-                        <p className="text-sm text-gray-500 text-center py-4">
+                        <p className="text-sm text-gray-500 text-center py-8">
                           선택한 프로젝트에 테스트 케이스가 없습니다.
                         </p>
                       ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                           {filteredTestCases.map((testcase: any) => (
                             <label
                               key={testcase.id}
-                              className="flex items-start gap-3 p-3 rounded-lg hover:bg-white transition-colors cursor-pointer"
+                              className="flex items-start gap-2 p-2 rounded hover:bg-white transition-colors cursor-pointer"
                             >
                               <input
                                 type="checkbox"
-                                checked={formData.testcase_ids.includes(testcase.id)}
+                                checked={formData.test_case_ids.includes(testcase.id)}
                                 onChange={() => handleTestCaseToggle(testcase.id)}
                                 className="mt-1 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                               />
@@ -453,7 +464,7 @@ export default function TestRuns() {
                                   {testcase.title}
                                 </p>
                                 {testcase.description && (
-                                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
                                     {testcase.description}
                                   </p>
                                 )}
@@ -463,11 +474,6 @@ export default function TestRuns() {
                         </div>
                       )}
                     </div>
-                    {formData.testcase_ids.length > 0 && (
-                      <p className="mt-2 text-sm text-gray-600">
-                        {formData.testcase_ids.length}개의 테스트 케이스가 선택되었습니다
-                      </p>
-                    )}
                   </div>
                 </div>
 
