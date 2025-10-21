@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Projects from './pages/Projects'
+import ProjectDetail from './pages/ProjectDetail'
 import TestCases from './pages/TestCases'
 import TestCaseDetail from './pages/TestCaseDetail'
 import TestRuns from './pages/TestRuns'
@@ -31,6 +32,7 @@ function App() {
         >
           <Route index element={<Dashboard />} />
           <Route path="projects" element={<Projects />} />
+          <Route path="projects/:id" element={<ProjectDetail />} />
           <Route path="testcases" element={<TestCases />} />
           <Route path="testcases/:id" element={<TestCaseDetail />} />
           <Route path="testruns" element={<TestRuns />} />
