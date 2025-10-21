@@ -15,8 +15,7 @@ class TestResultStatus(str, Enum):
     UNTESTED = "untested"
     PASSED = "passed"
     FAILED = "failed"
-    BLOCKED = "blocked"
-    RETEST = "retest"
+    BLOCKED = "blocked"  # 테스트불가
     SKIPPED = "skipped"
 
 
@@ -94,12 +93,23 @@ class TestResultUpdate(BaseModel):
     execution_time: Optional[int] = None
 
 
+class TestResultHistory(BaseModel):
+    status: TestResultStatus
+    comment: Optional[str] = None
+    tester_id: Optional[str] = None
+    tested_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class TestResultInDB(TestResultBase):
     id: str  # Firestore uses string IDs
     test_run_id: str  # Firestore uses string IDs
     test_case_id: str  # Firestore uses string IDs
     tester_id: Optional[str] = None  # Firestore uses string IDs
     tested_at: Optional[datetime] = None
+    history: List['TestResultHistory'] = []  # 상태 변경 히스토리
     created_at: datetime
     updated_at: datetime
 

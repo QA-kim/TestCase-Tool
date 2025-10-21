@@ -32,8 +32,19 @@ def create_testresult(
     result_in: TestResultCreate,
     current_user: dict = Depends(get_current_user_firestore)
 ):
+    from datetime import datetime
     result_data = result_in.dict()  # Pydantic v1 uses .dict()
     result_data['tester_id'] = current_user['id']
+    result_data['tested_at'] = datetime.utcnow().isoformat()
+
+    # Add to history
+    result_data['history'] = [{
+        'status': result_data['status'],
+        'comment': result_data.get('comment'),
+        'tester_id': current_user['id'],
+        'tested_at': result_data['tested_at']
+    }]
+
     result = testresults_collection.create(result_data)
     return result
 
@@ -58,6 +69,7 @@ def update_testresult(
     result_in: TestResultUpdate,
     current_user: dict = Depends(get_current_user_firestore)
 ):
+    from datetime import datetime
     result = testresults_collection.get(result_id)
     if not result:
         raise HTTPException(
@@ -66,6 +78,19 @@ def update_testresult(
         )
 
     update_data = result_in.dict(exclude_unset=True)  # Pydantic v1 uses .dict()
+    update_data['tested_at'] = datetime.utcnow().isoformat()
+
+    # Add to history if status changed
+    if 'status' in update_data:
+        history = result.get('history', [])
+        history.append({
+            'status': update_data['status'],
+            'comment': update_data.get('comment'),
+            'tester_id': current_user['id'],
+            'tested_at': update_data['tested_at']
+        })
+        update_data['history'] = history
+
     testresults_collection.update(result_id, update_data)
 
     # Return updated result
