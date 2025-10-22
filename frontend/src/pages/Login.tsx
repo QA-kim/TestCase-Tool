@@ -30,7 +30,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-500 rounded-2xl mb-4 shadow-lg">
             <span className="text-3xl font-bold text-white">T</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">TestRail</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">TMS</h1>
           <p className="text-gray-600">테스트 케이스 관리 시스템</p>
         </div>
 
@@ -86,9 +86,6 @@ export default function Login() {
           </form>
 
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-center text-sm text-gray-600 mb-4">
-              데모 계정: <span className="font-medium">admin@tcms.com</span> / <span className="font-medium">admin123</span>
-            </p>
             <p className="text-center text-sm text-gray-600">
               계정이 없으신가요?{' '}
               <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
@@ -100,7 +97,7 @@ export default function Login() {
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-600 mt-8">
-          © 2025 TestRail. All rights reserved.
+          © 2025 TMS. All rights reserved.
         </p>
       </div>
     </div>

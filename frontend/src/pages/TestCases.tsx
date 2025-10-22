@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import {
   Plus, Edit2, Trash2, X, Search, ChevronDown, ChevronRight,
-  Folder, FolderOpen, FileText, ArrowUp, ArrowDown, Circle, MoreVertical
+  Folder, FolderOpen, FileText, ArrowUp, ArrowDown, Circle, MoreVertical,
+  Download, Upload, AlertCircle, CheckCircle
 } from 'lucide-react'
 import api from '../lib/axios'
 import { useAuth } from '../contexts/AuthContext'
@@ -31,6 +32,9 @@ export default function TestCases() {
     project_id: 1,
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [importResult, setImportResult] = useState<{success: boolean, imported_count: number, errors: string[]} | null>(null)
+  const [showImportResult, setShowImportResult] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
 
   const { data: projects } = useQuery('projects', async () => {
@@ -78,6 +82,55 @@ export default function TestCases() {
       },
     }
   )
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await api.get('/testcases/template/download', {
+        responseType: 'blob',
+      })
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', 'testcase_template.xlsx')
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch (error) {
+      console.error('Template download failed:', error)
+    }
+  }
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const response = await api.post('/testcases/import/excel', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      setImportResult(response.data)
+      setShowImportResult(true)
+      queryClient.invalidateQueries('testcases')
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    } catch (error: any) {
+      setImportResult({
+        success: false,
+        imported_count: 0,
+        errors: [error.response?.data?.detail || 'Import failed'],
+      })
+      setShowImportResult(true)
+    }
+  }
 
   const handleClose = () => {
     setOpen(false)
@@ -302,17 +355,42 @@ export default function TestCases() {
                 )}
               </p>
             </div>
-            {isAdmin && selectedProjectId && (
-              <button
-                onClick={() => {
-                  setFormData({ ...formData, project_id: selectedProjectId })
-                  setOpen(true)
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
-              >
-                <Plus className="w-4 h-4" />
-                새 테스트 케이스
-              </button>
+            {isAdmin && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleDownloadTemplate}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-sm font-medium"
+                >
+                  <Download className="w-4 h-4" />
+                  Excel 템플릿
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
+                >
+                  <Upload className="w-4 h-4" />
+                  Excel Import
+                </button>
+                {selectedProjectId && (
+                  <button
+                    onClick={() => {
+                      setFormData({ ...formData, project_id: selectedProjectId })
+                      setOpen(true)
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    <Plus className="w-4 h-4" />
+                    새 테스트 케이스
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
@@ -695,6 +773,59 @@ export default function TestCases() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Result Modal */}
+      {showImportResult && importResult && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity" onClick={() => setShowImportResult(false)} />
+            <div className="relative inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-6 pt-5 pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full ${importResult.success ? 'bg-green-100' : 'bg-red-100'} sm:mx-0 sm:h-10 sm:w-10`}>
+                    {importResult.success ? (
+                      <CheckCircle className="h-6 w-6 text-green-600" />
+                    ) : (
+                      <AlertCircle className="h-6 w-6 text-red-600" />
+                    )}
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Excel Import 결과
+                    </h3>
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-700 mb-2">
+                        <strong>성공:</strong> {importResult.imported_count}개 항목 가져오기 완료
+                      </p>
+                      {importResult.errors.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-sm font-medium text-red-700 mb-2">오류:</p>
+                          <div className="bg-red-50 rounded-md p-3 max-h-60 overflow-y-auto">
+                            <ul className="list-disc list-inside space-y-1">
+                              {importResult.errors.map((error, index) => (
+                                <li key={index} className="text-sm text-red-700">{error}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-6 py-3 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={() => setShowImportResult(false)}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  확인
+                </button>
+              </div>
             </div>
           </div>
         </div>

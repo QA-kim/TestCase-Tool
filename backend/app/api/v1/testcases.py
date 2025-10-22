@@ -1,5 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi.responses import StreamingResponse
 from typing import List
+from io import BytesIO
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Font, PatternFill, Alignment
 
 from app.db.firestore import testcases_collection, testcase_history_collection
 from app.core.security import get_current_user_firestore
@@ -125,3 +129,170 @@ def get_testcase_history(
     history_records.sort(key=lambda x: x.get('version', 0), reverse=True)
 
     return history_records
+
+
+@router.get("/template/download")
+def download_template(
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """Download Excel template for test case import"""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "테스트 케이스"
+
+    # Header styling
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_alignment = Alignment(horizontal="center", vertical="center")
+
+    # Define headers
+    headers = [
+        "프로젝트 ID*",
+        "제목*",
+        "설명",
+        "사전조건",
+        "수행방법*",
+        "예상결과*",
+        "우선순위*",
+        "테스트 유형*"
+    ]
+
+    # Write headers
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+
+    # Add example row
+    example_row = [
+        "project_id_example",
+        "로그인 기능 테스트",
+        "사용자가 이메일과 비밀번호로 로그인할 수 있는지 확인",
+        "1. 사용자 계정이 생성되어 있어야 함\n2. 로그인 페이지에 접근 가능해야 함",
+        "1. 로그인 페이지로 이동\n2. 이메일 입력\n3. 비밀번호 입력\n4. 로그인 버튼 클릭",
+        "사용자가 성공적으로 로그인되고 대시보드 페이지로 이동됨",
+        "high",
+        "functional"
+    ]
+
+    for col_num, value in enumerate(example_row, 1):
+        cell = ws.cell(row=2, column=col_num, value=value)
+        cell.alignment = Alignment(wrap_text=True, vertical="top")
+
+    # Add instruction sheet
+    ws_info = wb.create_sheet("작성 가이드")
+    ws_info.column_dimensions['A'].width = 20
+    ws_info.column_dimensions['B'].width = 50
+
+    instructions = [
+        ("필수 필드", "* 표시가 있는 필드는 반드시 입력해야 합니다"),
+        ("프로젝트 ID", "테스트 케이스가 속할 프로젝트의 ID를 입력합니다"),
+        ("제목", "테스트 케이스의 제목을 입력합니다"),
+        ("설명", "테스트 케이스에 대한 상세 설명을 입력합니다 (선택)"),
+        ("사전조건", "테스트 수행 전 준비해야 할 조건을 입력합니다 (선택)"),
+        ("수행방법", "테스트를 수행하는 단계별 절차를 입력합니다"),
+        ("예상결과", "테스트 수행 후 예상되는 결과를 입력합니다"),
+        ("우선순위", "high, medium, low 중 하나를 입력합니다"),
+        ("테스트 유형", "functional, performance, security, usability 중 하나를 입력합니다"),
+    ]
+
+    for row_num, (field, desc) in enumerate(instructions, 1):
+        ws_info.cell(row=row_num, column=1, value=field).font = Font(bold=True)
+        ws_info.cell(row=row_num, column=2, value=desc)
+
+    # Adjust column widths
+    ws.column_dimensions['A'].width = 20
+    ws.column_dimensions['B'].width = 30
+    ws.column_dimensions['C'].width = 40
+    ws.column_dimensions['D'].width = 40
+    ws.column_dimensions['E'].width = 40
+    ws.column_dimensions['F'].width = 40
+    ws.column_dimensions['G'].width = 12
+    ws.column_dimensions['H'].width = 15
+
+    # Save to BytesIO
+    excel_file = BytesIO()
+    wb.save(excel_file)
+    excel_file.seek(0)
+
+    return StreamingResponse(
+        excel_file,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=testcase_template.xlsx"}
+    )
+
+
+@router.post("/import/excel")
+async def import_excel(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """Import test cases from Excel file"""
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only Excel files (.xlsx, .xls) are allowed"
+        )
+
+    try:
+        # Read Excel file
+        contents = await file.read()
+        wb = load_workbook(BytesIO(contents))
+        ws = wb.active
+
+        # Skip header row
+        imported_count = 0
+        errors = []
+
+        for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+            if not row or not any(row):  # Skip empty rows
+                continue
+
+            try:
+                project_id, title, description, preconditions, steps, expected_result, priority, test_type = row[:8]
+
+                # Validate required fields
+                if not all([project_id, title, steps, expected_result, priority, test_type]):
+                    errors.append(f"행 {row_num}: 필수 필드가 누락되었습니다")
+                    continue
+
+                # Validate priority
+                if priority not in ['high', 'medium', 'low']:
+                    errors.append(f"행 {row_num}: 우선순위는 high, medium, low 중 하나여야 합니다")
+                    continue
+
+                # Validate test_type
+                if test_type not in ['functional', 'performance', 'security', 'usability']:
+                    errors.append(f"행 {row_num}: 테스트 유형은 functional, performance, security, usability 중 하나여야 합니다")
+                    continue
+
+                # Create test case
+                testcase_data = {
+                    'project_id': str(project_id),
+                    'title': str(title),
+                    'description': str(description) if description else None,
+                    'preconditions': str(preconditions) if preconditions else None,
+                    'steps': str(steps),
+                    'expected_result': str(expected_result),
+                    'priority': str(priority),
+                    'test_type': str(test_type)
+                }
+
+                testcases_collection.create(testcase_data)
+                imported_count += 1
+
+            except Exception as e:
+                errors.append(f"행 {row_num}: {str(e)}")
+
+        return {
+            "imported_count": imported_count,
+            "errors": errors,
+            "success": imported_count > 0
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Excel 파일 처리 중 오류가 발생했습니다: {str(e)}"
+        )

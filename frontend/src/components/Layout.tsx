@@ -57,7 +57,7 @@ export default function Layout() {
               <div className="w-9 h-9 bg-primary-500 rounded-lg flex items-center justify-center text-white font-bold text-lg">
                 T
               </div>
-              <span className="font-bold text-gray-900 text-lg">TestRail</span>
+              <span className="font-bold text-gray-900 text-lg">TMS</span>
             </div>
           )}
           {!sidebarOpen && (
@@ -114,7 +114,7 @@ export default function Layout() {
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-semibold text-gray-900">
-              {menuItems.find(item => isActive(item.path))?.text || 'TestRail'}
+              {menuItems.find(item => isActive(item.path))?.text || 'TMS'}
             </h1>
           </div>
 

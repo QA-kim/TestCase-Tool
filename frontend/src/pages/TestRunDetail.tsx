@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { ArrowLeft, CheckCircle, XCircle, MinusCircle, Ban, Clock, History, User, ChevronDown } from 'lucide-react'
+import { ArrowLeft, CheckCircle, XCircle, MinusCircle, Ban, Clock, History, User, ChevronDown, FileDown } from 'lucide-react'
 import api from '../lib/axios'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 
 export default function TestRunDetail() {
   const { id } = useParams<{ id: string }>()
@@ -177,26 +179,168 @@ export default function TestRunDetail() {
     return user ? user.full_name || user.username : 'Unknown'
   }
 
+  const generatePDFReport = async () => {
+    // Helper function to get Korean status label
+    const getStatusLabelKo = (status: string) => {
+      const statusMap: { [key: string]: string } = {
+        'passed': '통과',
+        'failed': '실패',
+        'blocked': '테스트불가',
+        'skipped': '스킵',
+        'untested': '미실행'
+      }
+      return statusMap[status] || status
+    }
+
+    // Create a temporary HTML element for the report
+    const reportElement = document.createElement('div')
+    reportElement.style.position = 'absolute'
+    reportElement.style.left = '-9999px'
+    reportElement.style.width = '210mm' // A4 width
+    reportElement.style.padding = '20px'
+    reportElement.style.backgroundColor = 'white'
+    reportElement.style.fontFamily = 'Arial, sans-serif'
+
+    // Build the HTML content
+    reportElement.innerHTML = `
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h1 style="font-size: 24px; font-weight: bold; margin: 0;">테스트 실행 결과 보고서</h1>
+      </div>
+
+      <div style="margin-bottom: 15px; font-size: 12px;">
+        <p><strong>테스트 실행:</strong> ${testrun?.name || 'N/A'}</p>
+        <p><strong>생성일시:</strong> ${new Date().toLocaleString('ko-KR')}</p>
+        <p><strong>상태:</strong> ${testrun?.status || 'N/A'}</p>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">요약 통계</h2>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 8px; background-color: #f0f8ff;"><strong>전체:</strong> ${totalCount}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; background-color: #f0f8ff;"><strong>진행률:</strong> ${progress}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; background-color: #f0f8ff;"><strong>통과율:</strong> ${passRate}%</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 8px; background-color: #f0f8ff;"><strong>통과:</strong> ${passedCount}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; background-color: #f0f8ff;"><strong>실패:</strong> ${failedCount}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; background-color: #f0f8ff;"><strong>테스트불가:</strong> ${blockedCount} | <strong>스킵:</strong> ${skippedCount}</td>
+          </tr>
+        </table>
+      </div>
+
+      <div>
+        <h2 style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">테스트 케이스 결과</h2>
+        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+          <thead>
+            <tr style="background-color: #428bca; color: white;">
+              <th style="border: 1px solid #ddd; padding: 5px; text-align: left;">테스트 케이스</th>
+              <th style="border: 1px solid #ddd; padding: 5px; text-align: left;">수행방법</th>
+              <th style="border: 1px solid #ddd; padding: 5px; text-align: center; width: 40px;">P</th>
+              <th style="border: 1px solid #ddd; padding: 5px; text-align: center; width: 60px;">상태</th>
+              <th style="border: 1px solid #ddd; padding: 5px; text-align: left;">히스토리</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${testRunTestCases.map((testcase: any, index: number) => {
+              const result = results?.find((r: any) => r.test_case_id === testcase.id)
+              const bgColor = index % 2 === 0 ? '#ffffff' : '#f9f9f9'
+
+              // Format history
+              let historyText = '미실행'
+              if (result && result.history && result.history.length > 0) {
+                historyText = result.history.map((h: any) => {
+                  const userName = getUserName(h.tester_id)
+                  const date = new Date(h.tested_at).toLocaleDateString('ko-KR')
+                  const status = getStatusLabelKo(h.status)
+                  return `${date} ${userName} - ${status}${h.comment ? ': ' + h.comment : ''}`
+                }).join('<br/>')
+              }
+
+              return `
+                <tr style="background-color: ${bgColor};">
+                  <td style="border: 1px solid #ddd; padding: 5px; max-width: 150px;">${testcase.title || 'N/A'}</td>
+                  <td style="border: 1px solid #ddd; padding: 5px; max-width: 200px; font-size: 9px;">${testcase.steps || '-'}</td>
+                  <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${testcase.priority ? testcase.priority[0].toUpperCase() : '-'}</td>
+                  <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${result ? getStatusLabelKo(result.status) : '미실행'}</td>
+                  <td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${historyText}</td>
+                </tr>
+              `
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `
+
+    document.body.appendChild(reportElement)
+
+    try {
+      // Convert HTML to canvas
+      const canvas = await html2canvas(reportElement, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      })
+
+      // Create PDF
+      const imgWidth = 210 // A4 width in mm
+      const pageHeight = 297 // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const imgData = canvas.toDataURL('image/png')
+
+      // If content is taller than one page, scale it down to fit
+      if (imgHeight > pageHeight) {
+        const scaleFactor = pageHeight / imgHeight
+        const scaledWidth = imgWidth * scaleFactor
+        const scaledHeight = pageHeight
+        const xOffset = (imgWidth - scaledWidth) / 2
+        pdf.addImage(imgData, 'PNG', xOffset, 0, scaledWidth, scaledHeight)
+      } else {
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight)
+      }
+
+      // Save PDF
+      const fileName = `테스트보고서_${testrun?.name || 'Unknown'}_${new Date().toISOString().split('T')[0]}.pdf`
+      pdf.save(fileName)
+    } finally {
+      // Clean up
+      document.body.removeChild(reportElement)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-6 flex gap-6">
       {/* Main Content */}
-      <div className={`flex-1 ${selectedHistoryTestCase ? 'max-w-[60%]' : 'max-w-full'} transition-all`}>
+      <div className={`flex-1 ${selectedHistoryTestCase ? 'max-w-[60%]' : 'max-w-full'} transition-all flex flex-col`}>
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center justify-between mb-6 flex-shrink-0">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/testruns')}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-6 h-6 text-gray-700" />
+            </button>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {testrun?.name}
+            </h1>
+            {getRunStatusBadge(testrun?.status)}
+          </div>
+
           <button
-            onClick={() => navigate('/testruns')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            onClick={generatePDFReport}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-700" />
+            <FileDown className="w-5 h-5" />
+            PDF 보고서 다운로드
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {testrun?.name}
-          </h1>
-          {getRunStatusBadge(testrun?.status)}
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6 flex-shrink-0">
         {/* Progress Card */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="text-sm text-gray-500 mb-2">진행률</div>
@@ -247,9 +391,9 @@ export default function TestRunDetail() {
         </div>
 
         {/* Test Cases Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">테스트 케이스 목록 ({testRunTestCases.length}개)</h2>
-          <div className="overflow-x-auto">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex-1 flex flex-col min-h-0">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex-shrink-0">테스트 케이스 목록 ({testRunTestCases.length}개)</h2>
+          <div className="overflow-x-auto overflow-y-auto flex-1">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -316,31 +460,31 @@ export default function TestRunDetail() {
                             </button>
 
                             {openDropdown === testcase.id && (
-                              <div className="absolute z-10 mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-200 py-1 max-h-48 overflow-y-auto">
+                              <div className="absolute z-50 mt-1 w-full bg-white rounded-lg shadow-xl border border-gray-200 max-h-[120px] overflow-y-auto">
                                 <button
                                   onClick={() => handleStatusClick(testcase.id, 'passed')}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-green-700 hover:bg-green-50 transition-colors"
+                                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-green-700 hover:bg-green-50 transition-colors"
                                 >
                                   <CheckCircle className="w-4 h-4" />
                                   통과
                                 </button>
                                 <button
                                   onClick={() => handleStatusClick(testcase.id, 'failed')}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors"
+                                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-700 hover:bg-red-50 transition-colors"
                                 >
                                   <XCircle className="w-4 h-4" />
                                   실패
                                 </button>
                                 <button
                                   onClick={() => handleStatusClick(testcase.id, 'blocked')}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-orange-700 hover:bg-orange-50 transition-colors"
+                                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-orange-700 hover:bg-orange-50 transition-colors"
                                 >
                                   <Ban className="w-4 h-4" />
                                   테스트불가
                                 </button>
                                 <button
                                   onClick={() => handleStatusClick(testcase.id, 'skipped')}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-yellow-700 hover:bg-yellow-50 transition-colors"
+                                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-yellow-700 hover:bg-yellow-50 transition-colors"
                                 >
                                   <MinusCircle className="w-4 h-4" />
                                   스킵
