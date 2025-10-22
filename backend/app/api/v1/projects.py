@@ -13,6 +13,14 @@ def create_project(
     project_in: ProjectCreate,
     current_user: dict = Depends(get_current_user_firestore)
 ):
+    # Check if project name already exists
+    existing_projects = projects_collection.query('name', '==', project_in.name)
+    if existing_projects:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"프로젝트 이름 '{project_in.name}'은(는) 이미 존재합니다"
+        )
+
     project_data = project_in.dict()  # Pydantic v1 uses .dict()
     project_data['owner_id'] = current_user['id']
 
@@ -57,7 +65,18 @@ def update_project(
             detail="Project not found"
         )
 
+    # Check if new project name already exists (for other projects)
     update_data = project_in.dict(exclude_unset=True)  # Pydantic v1 uses .dict()
+    if 'name' in update_data:
+        existing_projects = projects_collection.query('name', '==', update_data['name'])
+        # Filter out the current project
+        other_projects = [p for p in existing_projects if p['id'] != project_id]
+        if other_projects:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"프로젝트 이름 '{update_data['name']}'은(는) 이미 존재합니다"
+            )
+
     projects_collection.update(project_id, update_data)
 
     # Return updated project
