@@ -5,7 +5,7 @@ from io import BytesIO
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 
-from app.db.firestore import testcases_collection, testcase_history_collection
+from app.db.firestore import testcases_collection, testcase_history_collection, projects_collection
 from app.core.security import get_current_user_firestore
 from app.schemas.testcase import TestCaseCreate, TestCaseUpdate, TestCase as TestCaseSchema
 
@@ -147,7 +147,7 @@ def download_template(
 
     # Define headers
     headers = [
-        "프로젝트 ID*",
+        "프로젝트 이름*",
         "제목*",
         "설명",
         "사전조건",
@@ -166,7 +166,7 @@ def download_template(
 
     # Add example row
     example_row = [
-        "project_id_example",
+        "샘플 프로젝트",
         "로그인 기능 테스트",
         "사용자가 이메일과 비밀번호로 로그인할 수 있는지 확인",
         "1. 사용자 계정이 생성되어 있어야 함\n2. 로그인 페이지에 접근 가능해야 함",
@@ -187,7 +187,7 @@ def download_template(
 
     instructions = [
         ("필수 필드", "* 표시가 있는 필드는 반드시 입력해야 합니다"),
-        ("프로젝트 ID", "테스트 케이스가 속할 프로젝트의 ID를 입력합니다"),
+        ("프로젝트 이름", "테스트 케이스가 속할 프로젝트의 이름을 입력합니다 (정확히 일치해야 함)"),
         ("제목", "테스트 케이스의 제목을 입력합니다"),
         ("설명", "테스트 케이스에 대한 상세 설명을 입력합니다 (선택)"),
         ("사전조건", "테스트 수행 전 준비해야 할 조건을 입력합니다 (선택)"),
@@ -250,12 +250,21 @@ async def import_excel(
                 continue
 
             try:
-                project_id, title, description, preconditions, steps, expected_result, priority, test_type = row[:8]
+                project_name, title, description, preconditions, steps, expected_result, priority, test_type = row[:8]
 
                 # Validate required fields
-                if not all([project_id, title, steps, expected_result, priority, test_type]):
+                if not all([project_name, title, steps, expected_result, priority, test_type]):
                     errors.append(f"행 {row_num}: 필수 필드가 누락되었습니다")
                     continue
+
+                # Find project by name
+                projects = projects_collection.query('name', '==', str(project_name))
+                if not projects:
+                    errors.append(f"행 {row_num}: 프로젝트 '{project_name}'을(를) 찾을 수 없습니다")
+                    continue
+
+                project = projects[0]
+                project_id = project['id']
 
                 # Validate priority
                 if priority not in ['high', 'medium', 'low']:
