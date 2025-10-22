@@ -17,6 +17,9 @@ email-validator==2.1.0
 # Configuration
 python-dotenv==1.0.0
 
+# Excel Processing
+openpyxl==3.1.5
+
 # Testing
 pytest==7.4.3
 pytest-asyncio==0.21.1
