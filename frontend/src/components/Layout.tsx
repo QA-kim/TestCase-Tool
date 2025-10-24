@@ -6,7 +6,6 @@ import {
   FileText,
   Play,
   LogOut,
-  Plus,
   User,
   Settings,
   Menu,
@@ -20,7 +19,6 @@ export default function Layout() {
   const location = useLocation()
   const { user, logout: authLogout } = useAuth()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const [addMenuOpen, setAddMenuOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const handleLogout = () => {
@@ -119,61 +117,6 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Add Button - Only for Admin */}
-            {isAdmin && (
-              <div className="relative">
-                <button
-                  onClick={() => setAddMenuOpen(!addMenuOpen)}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="text-sm font-medium">추가</span>
-                </button>
-
-              {/* Add Dropdown */}
-              {addMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setAddMenuOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                    <button
-                      onClick={() => {
-                        navigate('/projects')
-                        setAddMenuOpen(false)
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      <FolderOpen className="w-4 h-4" />
-                      새 프로젝트
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigate('/testcases')
-                        setAddMenuOpen(false)
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      <FileText className="w-4 h-4" />
-                      새 테스트 케이스
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigate('/testruns')
-                        setAddMenuOpen(false)
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      <Play className="w-4 h-4" />
-                      새 테스트 실행
-                    </button>
-                  </div>
-                </>
-              )}
-              </div>
-            )}
-
             {/* User Menu */}
             <div className="relative">
               <button
