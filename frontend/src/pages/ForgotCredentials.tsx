@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Mail, ArrowLeft, KeyRound, User } from 'lucide-react'
-import api from '../services/api'
+import api from '../lib/axios'
 
 type TabType = 'username' | 'password'
 
