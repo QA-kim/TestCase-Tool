@@ -12,23 +12,17 @@ from app.schemas.user import UserCreate, User as UserSchema, Token
 router = APIRouter()
 
 
-class FindUsernameRequest(BaseModel):
-    email: EmailStr
+class FindEmailRequest(BaseModel):
+    full_name: str
 
 
-class FindUsernameResponse(BaseModel):
-    email: str
-    username: str
-    created_at: str
+class FindEmailResponse(BaseModel):
+    emails: list[str]
+    count: int
 
 
 class ResetPasswordRequest(BaseModel):
     email: EmailStr
-
-
-class ResetPasswordConfirm(BaseModel):
-    token: str
-    new_password: str
 
 
 @router.post("/register", response_model=UserSchema)
@@ -90,27 +84,30 @@ def get_me(current_user: dict = Depends(get_current_user_firestore)):
     return current_user
 
 
-@router.post("/find-username", response_model=FindUsernameResponse)
-def find_username(request: FindUsernameRequest):
-    """이메일로 아이디(사용자명) 찾기"""
-    user = users_collection.get_by_field('email', request.email)
+@router.post("/find-email", response_model=FindEmailResponse)
+def find_email(request: FindEmailRequest):
+    """이름으로 등록된 이메일 찾기"""
+    # Get all users and filter by full_name
+    all_users = users_collection.get_all()
+    matching_users = [u for u in all_users if u.get('full_name', '').strip().lower() == request.full_name.strip().lower()]
 
-    if not user:
+    if not matching_users:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="해당 이메일로 등록된 계정을 찾을 수 없습니다"
+            detail="해당 이름으로 등록된 계정을 찾을 수 없습니다"
         )
 
+    emails = [u['email'] for u in matching_users]
+
     return {
-        "email": user['email'],
-        "username": user.get('username', user['email']),
-        "created_at": user['created_at'].strftime("%Y-%m-%d") if isinstance(user['created_at'], datetime) else str(user['created_at'])
+        "emails": emails,
+        "count": len(emails)
     }
 
 
 @router.post("/reset-password-request")
 def reset_password_request(request: ResetPasswordRequest):
-    """비밀번호 재설정 토큰 생성"""
+    """임시 비밀번호 생성 및 이메일 발송"""
     user = users_collection.get_by_field('email', request.email)
 
     if not user:
@@ -119,59 +116,21 @@ def reset_password_request(request: ResetPasswordRequest):
             detail="해당 이메일로 등록된 계정을 찾을 수 없습니다"
         )
 
-    # Generate reset token (6-digit code)
-    reset_token = ''.join([str(secrets.randbelow(10)) for _ in range(6)])
+    # Generate temporary password (8 characters: letters + numbers)
+    import random
+    import string
+    temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
 
-    # Store token in user document (expires in 30 minutes)
+    # Update user with temporary password
     users_collection.update(user['id'], {
-        'reset_token': reset_token,
-        'reset_token_expires': datetime.utcnow() + timedelta(minutes=30)
+        'hashed_password': get_password_hash(temp_password),
+        'password_reset_at': datetime.utcnow()
     })
 
-    # In a real system, send this token via email
+    # In a real system, send this via email
     # For now, return it in the response (for testing only)
     return {
-        "message": "비밀번호 재설정 코드가 생성되었습니다",
-        "token": reset_token,  # Remove this in production
+        "message": f"임시 비밀번호가 '{request.email}' 이메일로 전송되었습니다",
+        "temporary_password": temp_password,  # Remove this in production
         "email": request.email
     }
-
-
-@router.post("/reset-password")
-def reset_password(request: ResetPasswordConfirm):
-    """비밀번호 재설정"""
-    # Find user with matching token
-    users = users_collection.get_all()
-    user = None
-
-    for u in users:
-        if u.get('reset_token') == request.token:
-            user = u
-            break
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="유효하지 않은 재설정 코드입니다"
-        )
-
-    # Check if token is expired
-    if 'reset_token_expires' in user:
-        expires = user['reset_token_expires']
-        if isinstance(expires, str):
-            expires = datetime.fromisoformat(expires.replace('Z', '+00:00'))
-
-        if datetime.utcnow() > expires:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="재설정 코드가 만료되었습니다"
-            )
-
-    # Update password and clear reset token
-    users_collection.update(user['id'], {
-        'hashed_password': get_password_hash(request.new_password),
-        'reset_token': None,
-        'reset_token_expires': None
-    })
-
-    return {"message": "비밀번호가 성공적으로 재설정되었습니다"}

@@ -88,7 +88,7 @@ export default function Login() {
           <div className="mt-6 pt-6 border-t border-gray-200 space-y-3">
             <p className="text-center text-sm text-gray-600">
               <Link to="/forgot" className="text-primary-600 hover:text-primary-700 font-medium">
-                아이디/비밀번호 찾기
+                이메일/비밀번호 찾기
               </Link>
             </p>
             <p className="text-center text-sm text-gray-600">
