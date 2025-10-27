@@ -107,8 +107,8 @@ def get_me(current_user: dict = Depends(get_current_user_firestore)):
 @router.post("/find-email", response_model=FindEmailResponse)
 def find_email(request: FindEmailRequest):
     """이름으로 등록된 이메일 찾기"""
-    # Get all users and filter by full_name
-    all_users = users_collection.get_all()
+    # Get all users and filter by full_name (using list method with high limit)
+    all_users = users_collection.list(limit=1000)
     matching_users = [u for u in all_users if u.get('full_name', '').strip().lower() == request.full_name.strip().lower()]
 
     if not matching_users:
