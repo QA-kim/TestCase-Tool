@@ -127,7 +127,9 @@ def register(request: Request, user_in: UserCreate):
         'full_name': user_in.full_name,
         'role': 'viewer',  # Always viewer for registration
         'hashed_password': get_password_hash(user_in.password),
-        'is_active': True
+        'is_active': True,
+        'is_locked': False,
+        'failed_login_attempts': 0
     }
 
     user = users_collection.create(user_data)
@@ -142,18 +144,74 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     if not user:
         user = users_collection.get_by_field('username', form_data.username)
 
-    if not user or not verify_password(form_data.password, user['hashed_password']):
+    # If user not found, return generic error
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="이메일 또는 비밀번호가 올바르지 않습니다",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Check if account is locked
+    if user.get('is_locked', False):
+        locked_until = user.get('locked_until')
+        if locked_until and datetime.utcnow() < locked_until:
+            remaining_minutes = int((locked_until - datetime.utcnow()).total_seconds() / 60)
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"계정이 잠겼습니다. {remaining_minutes}분 후에 다시 시도해주세요."
+            )
+        else:
+            # Lock period expired, unlock account
+            users_collection.update(user['id'], {
+                'is_locked': False,
+                'failed_login_attempts': 0,
+                'locked_until': None
+            })
+            user['is_locked'] = False
+            user['failed_login_attempts'] = 0
+
+    # Check if account is active
     if not user.get('is_active', True):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
+            detail="비활성화된 계정입니다"
         )
+
+    # Verify password
+    if not verify_password(form_data.password, user['hashed_password']):
+        # Increment failed login attempts
+        failed_attempts = user.get('failed_login_attempts', 0) + 1
+        update_data = {'failed_login_attempts': failed_attempts}
+
+        # Lock account after 5 failed attempts
+        if failed_attempts >= 5:
+            lock_duration_minutes = 30  # Lock for 30 minutes
+            locked_until = datetime.utcnow() + timedelta(minutes=lock_duration_minutes)
+            update_data.update({
+                'is_locked': True,
+                'locked_until': locked_until
+            })
+            users_collection.update(user['id'], update_data)
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"로그인 5회 실패로 계정이 {lock_duration_minutes}분간 잠겼습니다."
+            )
+
+        users_collection.update(user['id'], update_data)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"이메일 또는 비밀번호가 올바르지 않습니다. (실패 {failed_attempts}/5)",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Successful login - reset failed attempts
+    if user.get('failed_login_attempts', 0) > 0:
+        users_collection.update(user['id'], {
+            'failed_login_attempts': 0,
+            'is_locked': False,
+            'locked_until': None
+        })
 
     # Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
