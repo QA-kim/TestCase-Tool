@@ -1,25 +1,34 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { AlertCircle } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import ErrorModal from '../components/ErrorModal'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [showErrorModal, setShowErrorModal] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setShowErrorModal(false)
 
     try {
       await login(email, password)
       navigate('/')
     } catch (err: any) {
-      setError(err.response?.data?.detail || '로그인에 실패했습니다.')
+      const errorMessage = err.response?.data?.detail || '로그인에 실패했습니다.'
+      setError(errorMessage)
+      setShowErrorModal(true)
     }
+  }
+
+  const closeErrorModal = () => {
+    setShowErrorModal(false)
+    setError('')
   }
 
   return (
@@ -37,13 +46,6 @@ export default function Login() {
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">로그인</h2>
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -105,6 +107,14 @@ export default function Login() {
           © 2025 TMS. All rights reserved.
         </p>
       </div>
+
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={closeErrorModal}
+        title="로그인 실패"
+        message={error}
+      />
     </div>
   )
 }
