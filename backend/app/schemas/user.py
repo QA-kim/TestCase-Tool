@@ -40,6 +40,15 @@ class UserCreate(BaseModel):
             raise ValueError('비밀번호는 최소 8자 이상이어야 합니다')
         if len(v) > 128:
             raise ValueError('비밀번호는 128자를 초과할 수 없습니다')
+
+        # Check for at least one letter
+        if not re.search(r'[a-zA-Z]', v):
+            raise ValueError('비밀번호는 최소 1개의 영문자를 포함해야 합니다')
+
+        # Check for at least one digit
+        if not re.search(r'\d', v):
+            raise ValueError('비밀번호는 최소 1개의 숫자를 포함해야 합니다')
+
         return v
 
     @validator('full_name')

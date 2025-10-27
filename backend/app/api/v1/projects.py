@@ -3,6 +3,7 @@ from typing import List
 
 from app.db.firestore import projects_collection
 from app.core.security import get_current_user_firestore
+from app.core.permissions import check_creation_permission, check_modification_permission
 from app.schemas.project import ProjectCreate, ProjectUpdate, Project as ProjectSchema
 
 router = APIRouter()
@@ -13,6 +14,9 @@ def create_project(
     project_in: ProjectCreate,
     current_user: dict = Depends(get_current_user_firestore)
 ):
+    # Check creation permission (viewer cannot create)
+    check_creation_permission(current_user, "프로젝트")
+
     # Check if project name already exists
     existing_projects = projects_collection.query('name', '==', project_in.name)
     if existing_projects:
@@ -59,11 +63,9 @@ def update_project(
     current_user: dict = Depends(get_current_user_firestore)
 ):
     project = projects_collection.get(project_id)
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found"
-        )
+
+    # Check modification permission (IDOR protection)
+    check_modification_permission(project, current_user, "프로젝트")
 
     # Check if new project name already exists (for other projects)
     update_data = project_in.dict(exclude_unset=True)  # Pydantic v1 uses .dict()
@@ -90,11 +92,9 @@ def delete_project(
     current_user: dict = Depends(get_current_user_firestore)
 ):
     project = projects_collection.get(project_id)
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found"
-        )
+
+    # Check modification permission (IDOR protection)
+    check_modification_permission(project, current_user, "프로젝트")
 
     projects_collection.delete(project_id)
     return None
