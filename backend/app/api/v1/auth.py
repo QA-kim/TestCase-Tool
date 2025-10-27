@@ -157,9 +157,10 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
         locked_until = user.get('locked_until')
         if locked_until and datetime.utcnow() < locked_until:
             remaining_minutes = int((locked_until - datetime.utcnow()).total_seconds() / 60)
+            locked_time_str = locked_until.strftime("%Y-%m-%d %H:%M:%S UTC")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"계정이 잠겼습니다. {remaining_minutes}분 후에 다시 시도해주세요."
+                detail=f"계정이 잠겼습니다. {remaining_minutes}분 후에 다시 시도해주세요.\n잠금 해제 시간: {locked_time_str}"
             )
         else:
             # Lock period expired, unlock account
@@ -193,9 +194,12 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
                 'locked_until': locked_until
             })
             users_collection.update(user['id'], update_data)
+
+            # Format the locked time for display
+            locked_time_str = locked_until.strftime("%Y-%m-%d %H:%M:%S UTC")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"로그인 5회 실패로 계정이 {lock_duration_minutes}분간 잠겼습니다."
+                detail=f"로그인 5회 실패로 계정이 {lock_duration_minutes}분간 잠겼습니다.\n잠금 해제 시간: {locked_time_str}"
             )
 
         users_collection.update(user['id'], update_data)
