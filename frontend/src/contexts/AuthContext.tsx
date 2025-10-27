@@ -7,6 +7,7 @@ interface User {
   username: string
   full_name?: string
   role: string
+  is_temp_password?: boolean
 }
 
 interface AuthContextType {
@@ -15,6 +16,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>
   logout: () => void
   register: (data: any) => Promise<void>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -69,6 +71,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await api.post('/auth/register', data)
   }
 
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    await api.post('/auth/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword
+    })
+    // Refresh user profile to update is_temp_password flag
+    await fetchUserProfile()
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -78,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, register }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, register, changePassword }}>
       {children}
     </AuthContext.Provider>
   )
