@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta, datetime
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, validator
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 import secrets
@@ -93,11 +93,24 @@ class ResetPasswordRequest(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
-    new_password: str
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+    @validator('new_password')
+    def validate_new_password(cls, v):
+        import re
+        if len(v) < 8:
+            raise ValueError('비밀번호는 최소 8자 이상이어야 합니다')
+        if len(v) > 128:
+            raise ValueError('비밀번호는 128자를 초과할 수 없습니다')
+        if not re.search(r'[a-zA-Z]', v):
+            raise ValueError('비밀번호는 최소 1개의 영문자를 포함해야 합니다')
+        if not re.search(r'\d', v):
+            raise ValueError('비밀번호는 최소 1개의 숫자를 포함해야 합니다')
+        return v
 
 
 @router.post("/register", response_model=UserSchema)
-@limiter.limit("5/minute")
+@limiter.limit("3/10minutes")
 def register(request: Request, user_in: UserCreate):
     # Check if user exists
     existing_user = users_collection.get_by_field('email', user_in.email)
@@ -158,7 +171,7 @@ def get_me(current_user: dict = Depends(get_current_user_firestore)):
 
 
 @router.post("/find-email", response_model=FindEmailResponse)
-@limiter.limit("5/minute")
+@limiter.limit("3/10minutes")
 def find_email(request: Request, find_request: FindEmailRequest):
     """이름으로 등록된 이메일 찾기"""
     # Get all users and filter by full_name (using list method with high limit)
@@ -180,7 +193,7 @@ def find_email(request: Request, find_request: FindEmailRequest):
 
 
 @router.post("/reset-password-request")
-@limiter.limit("3/minute")
+@limiter.limit("3/10minutes")
 def reset_password_request(http_request: Request, request: ResetPasswordRequest):
     """임시 비밀번호 생성 및 이메일 발송"""
     user = users_collection.get_by_field('email', request.email)
