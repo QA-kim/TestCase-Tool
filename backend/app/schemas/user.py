@@ -34,6 +34,7 @@ class UserUpdate(BaseModel):
 class UserInDB(UserBase):
     id: str  # Firestore uses string IDs
     is_active: bool
+    is_temp_password: Optional[bool] = False
     created_at: datetime
     updated_at: datetime
 
