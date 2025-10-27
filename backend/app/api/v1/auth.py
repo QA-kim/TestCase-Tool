@@ -15,18 +15,19 @@ logger = logging.getLogger(__name__)
 
 
 def send_email(to_email: str, subject: str, body: str):
-    """이메일 발송 (SendGrid API)"""
+    """이메일 발송 (Brevo API)"""
     import os
-    from sendgrid import SendGridAPIClient
-    from sendgrid.helpers.mail import Mail
+    import sib_api_v3_sdk
+    from sib_api_v3_sdk.rest import ApiException
 
-    # SendGrid 설정
-    sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
-    sender_email = os.getenv('SENDGRID_SENDER_EMAIL', 'noreply@tcms.com')
+    # Brevo 설정
+    brevo_api_key = os.getenv('BREVO_API_KEY')
+    sender_email = os.getenv('BREVO_SENDER_EMAIL', 'noreply@tcms.com')
+    sender_name = os.getenv('BREVO_SENDER_NAME', 'TMS')
 
     # 환경 변수가 설정되지 않은 경우 로그만 출력
-    if not sendgrid_api_key:
-        logger.warning("SendGrid API key not configured. Email will not be sent.")
+    if not brevo_api_key:
+        logger.warning("Brevo API key not configured. Email will not be sent.")
         logger.info(f"=== 이메일 발송 (로그만) ===")
         logger.info(f"받는 사람: {to_email}")
         logger.info(f"제목: {subject}")
@@ -35,22 +36,27 @@ def send_email(to_email: str, subject: str, body: str):
         return
 
     try:
+        # Brevo API 클라이언트 설정
+        configuration = sib_api_v3_sdk.Configuration()
+        configuration.api_key['api-key'] = brevo_api_key
+
+        api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+
         # 이메일 메시지 생성
-        message = Mail(
-            from_email=sender_email,
-            to_emails=to_email,
+        send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+            to=[{"email": to_email}],
+            sender={"name": sender_name, "email": sender_email},
             subject=subject,
-            plain_text_content=body
+            text_content=body
         )
 
-        # SendGrid API로 이메일 발송
-        sg = SendGridAPIClient(sendgrid_api_key)
-        response = sg.send(message)
+        # Brevo API로 이메일 발송
+        api_response = api_instance.send_transac_email(send_smtp_email)
 
-        logger.info(f"Email sent successfully to {to_email} (status: {response.status_code})")
+        logger.info(f"Email sent successfully to {to_email} (message_id: {api_response.message_id})")
 
-    except Exception as e:
-        logger.error(f"Failed to send email to {to_email}: {str(e)}")
+    except ApiException as e:
+        logger.error(f"Brevo API exception when sending email to {to_email}: {e}")
         # 이메일 발송 실패 시에도 로그는 출력
         logger.info(f"=== 이메일 발송 실패 (내용 로그) ===")
         logger.info(f"받는 사람: {to_email}")
@@ -58,6 +64,14 @@ def send_email(to_email: str, subject: str, body: str):
         logger.info(f"내용:\n{body}")
         logger.info(f"==================")
         # 이메일 발송 실패해도 에러는 던지지 않음 (사용자에게는 성공 메시지 표시)
+        logger.warning("Email sending failed, but continuing...")
+    except Exception as e:
+        logger.error(f"Failed to send email to {to_email}: {str(e)}")
+        logger.info(f"=== 이메일 발송 실패 (내용 로그) ===")
+        logger.info(f"받는 사람: {to_email}")
+        logger.info(f"제목: {subject}")
+        logger.info(f"내용:\n{body}")
+        logger.info(f"==================")
         logger.warning("Email sending failed, but continuing...")
 
 
