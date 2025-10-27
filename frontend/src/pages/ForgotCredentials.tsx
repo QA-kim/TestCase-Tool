@@ -14,7 +14,6 @@ export default function ForgotCredentials() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [foundEmails, setFoundEmails] = useState<string[]>([])
-  const [tempPassword, setTempPassword] = useState('')
 
   const handleFindEmail = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,11 +38,9 @@ export default function ForgotCredentials() {
     setLoading(true)
     setError('')
     setSuccess('')
-    setTempPassword('')
 
     try {
       const response = await api.post('/auth/reset-password-request', { email })
-      setTempPassword(response.data.temporary_password)
       setSuccess(response.data.message)
     } catch (err: any) {
       setError(err.response?.data?.detail || '비밀번호 재설정 요청에 실패했습니다')
@@ -58,7 +55,6 @@ export default function ForgotCredentials() {
     setError('')
     setSuccess('')
     setFoundEmails([])
-    setTempPassword('')
   }
 
   return (
@@ -185,16 +181,10 @@ export default function ForgotCredentials() {
                   </div>
                 )}
 
-                {success && tempPassword && (
+                {success && (
                   <div className="bg-green-50 border border-green-200 text-green-800 p-4 rounded-lg">
-                    <p className="font-medium mb-2">{success}</p>
-                    <div className="bg-white p-3 rounded border border-green-300 mt-3">
-                      <p className="text-sm text-gray-600 mb-1">임시 비밀번호</p>
-                      <p className="text-2xl font-bold text-gray-900 font-mono tracking-wider">{tempPassword}</p>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-3">
-                      (테스트 모드: 실제 운영 시에는 이메일로 발송됩니다)
-                    </p>
+                    <p className="font-medium">{success}</p>
+                    <p className="text-sm mt-2">이메일을 확인해주세요.</p>
                   </div>
                 )}
 
@@ -206,7 +196,7 @@ export default function ForgotCredentials() {
                   {loading ? '처리 중...' : '임시 비밀번호 받기'}
                 </button>
 
-                {tempPassword && (
+                {success && (
                   <button
                     type="button"
                     onClick={() => navigate('/login')}

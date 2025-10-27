@@ -3,6 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta, datetime
 from pydantic import BaseModel, EmailStr
 import secrets
+import logging
 
 from app.db.firestore import users_collection
 from app.core.security import verify_password, create_access_token, get_password_hash, get_current_user_firestore
@@ -10,6 +11,20 @@ from app.core.config import settings
 from app.schemas.user import UserCreate, User as UserSchema, Token
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def send_email(to_email: str, subject: str, body: str):
+    """이메일 발송 (로그 출력)"""
+    logger.info(f"=== 이메일 발송 ===")
+    logger.info(f"받는 사람: {to_email}")
+    logger.info(f"제목: {subject}")
+    logger.info(f"내용:\n{body}")
+    logger.info(f"==================")
+    # 실제 운영 시에는 SMTP 설정 후 이메일 발송 구현
+    # import smtplib
+    # from email.mime.text import MIMEText
+    # ...
 
 
 class FindEmailRequest(BaseModel):
@@ -23,6 +38,11 @@ class FindEmailResponse(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     email: EmailStr
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 
 @router.post("/register", response_model=UserSchema)
@@ -121,16 +141,57 @@ def reset_password_request(request: ResetPasswordRequest):
     import string
     temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
 
-    # Update user with temporary password
+    # Update user with temporary password and flag
     users_collection.update(user['id'], {
         'hashed_password': get_password_hash(temp_password),
+        'is_temp_password': True,
         'password_reset_at': datetime.utcnow()
     })
 
-    # In a real system, send this via email
-    # For now, return it in the response (for testing only)
+    # Send email with temporary password
+    email_body = f"""
+안녕하세요,
+
+TMS 임시 비밀번호를 안내드립니다.
+
+임시 비밀번호: {temp_password}
+
+로그인 후 반드시 비밀번호를 변경해주세요.
+
+감사합니다.
+TMS 팀
+    """
+
+    send_email(
+        to_email=request.email,
+        subject="[TMS] 임시 비밀번호 안내",
+        body=email_body
+    )
+
     return {
         "message": f"임시 비밀번호가 '{request.email}' 이메일로 전송되었습니다",
-        "temporary_password": temp_password,  # Remove this in production
         "email": request.email
     }
+
+
+@router.post("/change-password")
+def change_password(
+    request: ChangePasswordRequest,
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """비밀번호 변경"""
+    # Verify current password
+    if not verify_password(request.current_password, current_user['hashed_password']):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="현재 비밀번호가 일치하지 않습니다"
+        )
+
+    # Update password and remove temp flag
+    users_collection.update(current_user['id'], {
+        'hashed_password': get_password_hash(request.new_password),
+        'is_temp_password': False,
+        'password_changed_at': datetime.utcnow()
+    })
+
+    return {"message": "비밀번호가 성공적으로 변경되었습니다"}

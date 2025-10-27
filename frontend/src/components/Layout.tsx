@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Home,
   FolderOpen,
@@ -13,6 +13,7 @@ import {
   Shield
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import ChangePasswordModal from './ChangePasswordModal'
 
 export default function Layout() {
   const navigate = useNavigate()
@@ -20,6 +21,13 @@ export default function Layout() {
   const { user, logout: authLogout } = useAuth()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+
+  useEffect(() => {
+    if (user?.is_temp_password) {
+      setShowPasswordModal(true)
+    }
+  }, [user])
 
   const handleLogout = () => {
     authLogout()
@@ -182,6 +190,13 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Password Change Modal */}
+      <ChangePasswordModal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        isMandatory={user?.is_temp_password || false}
+      />
     </div>
   )
 }
