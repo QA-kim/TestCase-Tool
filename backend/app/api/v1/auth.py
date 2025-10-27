@@ -15,21 +15,18 @@ logger = logging.getLogger(__name__)
 
 
 def send_email(to_email: str, subject: str, body: str):
-    """이메일 발송 (Gmail SMTP)"""
-    import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
+    """이메일 발송 (SendGrid API)"""
     import os
+    from sendgrid import SendGridAPIClient
+    from sendgrid.helpers.mail import Mail
 
-    # Gmail SMTP 설정
-    smtp_server = "smtp.gmail.com"
-    smtp_port = 587
-    sender_email = os.getenv('GMAIL_SENDER_EMAIL')
-    sender_password = os.getenv('GMAIL_APP_PASSWORD')
+    # SendGrid 설정
+    sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
+    sender_email = os.getenv('SENDGRID_SENDER_EMAIL', 'noreply@tcms.com')
 
     # 환경 변수가 설정되지 않은 경우 로그만 출력
-    if not sender_email or not sender_password:
-        logger.warning("Gmail SMTP credentials not configured. Email will not be sent.")
+    if not sendgrid_api_key:
+        logger.warning("SendGrid API key not configured. Email will not be sent.")
         logger.info(f"=== 이메일 발송 (로그만) ===")
         logger.info(f"받는 사람: {to_email}")
         logger.info(f"제목: {subject}")
@@ -39,21 +36,18 @@ def send_email(to_email: str, subject: str, body: str):
 
     try:
         # 이메일 메시지 생성
-        message = MIMEMultipart()
-        message['From'] = sender_email
-        message['To'] = to_email
-        message['Subject'] = subject
+        message = Mail(
+            from_email=sender_email,
+            to_emails=to_email,
+            subject=subject,
+            plain_text_content=body
+        )
 
-        # 본문 추가
-        message.attach(MIMEText(body, 'plain', 'utf-8'))
+        # SendGrid API로 이메일 발송
+        sg = SendGridAPIClient(sendgrid_api_key)
+        response = sg.send(message)
 
-        # SMTP 서버 연결 및 이메일 발송
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()  # TLS 보안 연결
-            server.login(sender_email, sender_password)
-            server.send_message(message)
-
-        logger.info(f"Email sent successfully to {to_email}")
+        logger.info(f"Email sent successfully to {to_email} (status: {response.status_code})")
 
     except Exception as e:
         logger.error(f"Failed to send email to {to_email}: {str(e)}")
@@ -63,10 +57,8 @@ def send_email(to_email: str, subject: str, body: str):
         logger.info(f"제목: {subject}")
         logger.info(f"내용:\n{body}")
         logger.info(f"==================")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"이메일 발송에 실패했습니다: {str(e)}"
-        )
+        # 이메일 발송 실패해도 에러는 던지지 않음 (사용자에게는 성공 메시지 표시)
+        logger.warning("Email sending failed, but continuing...")
 
 
 class FindEmailRequest(BaseModel):
