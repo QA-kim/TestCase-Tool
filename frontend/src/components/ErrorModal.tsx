@@ -10,9 +10,25 @@ interface ErrorModalProps {
 export default function ErrorModal({ isOpen, onClose, title = '오류', message }: ErrorModalProps) {
   if (!isOpen) return null
 
+  const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Prevent closing when clicking the background
+    e.stopPropagation()
+  }
+
+  const handleModalClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Prevent event from bubbling to background
+    e.stopPropagation()
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      onClick={handleBackgroundClick}
+    >
+      <div
+        className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4"
+        onClick={handleModalClick}
+      >
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
