@@ -72,6 +72,9 @@ class UserInDB(UserBase):
     id: str  # Firestore uses string IDs
     is_active: bool
     is_temp_password: Optional[bool] = False
+    is_locked: Optional[bool] = False
+    failed_login_attempts: Optional[int] = 0
+    locked_until: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 
