@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta, datetime
 from pydantic import BaseModel, EmailStr
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import secrets
 import logging
 
@@ -12,6 +14,7 @@ from app.schemas.user import UserCreate, User as UserSchema, Token
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+limiter = Limiter(key_func=get_remote_address)
 
 
 def send_email(to_email: str, subject: str, body: str):
@@ -94,7 +97,8 @@ class ChangePasswordRequest(BaseModel):
 
 
 @router.post("/register", response_model=UserSchema)
-def register(user_in: UserCreate):
+@limiter.limit("5/minute")
+def register(request: Request, user_in: UserCreate):
     # Check if user exists
     existing_user = users_collection.get_by_field('email', user_in.email)
     if existing_user:
@@ -118,7 +122,8 @@ def register(user_in: UserCreate):
 
 
 @router.post("/login", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends()):
+@limiter.limit("10/minute")
+def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     # Authenticate user - try email first
     user = users_collection.get_by_field('email', form_data.username)
     if not user:
@@ -153,11 +158,12 @@ def get_me(current_user: dict = Depends(get_current_user_firestore)):
 
 
 @router.post("/find-email", response_model=FindEmailResponse)
-def find_email(request: FindEmailRequest):
+@limiter.limit("5/minute")
+def find_email(request: Request, find_request: FindEmailRequest):
     """이름으로 등록된 이메일 찾기"""
     # Get all users and filter by full_name (using list method with high limit)
     all_users = users_collection.list(limit=1000)
-    matching_users = [u for u in all_users if u.get('full_name', '').strip().lower() == request.full_name.strip().lower()]
+    matching_users = [u for u in all_users if u.get('full_name', '').strip().lower() == find_request.full_name.strip().lower()]
 
     if not matching_users:
         raise HTTPException(
@@ -174,7 +180,8 @@ def find_email(request: FindEmailRequest):
 
 
 @router.post("/reset-password-request")
-def reset_password_request(request: ResetPasswordRequest):
+@limiter.limit("3/minute")
+def reset_password_request(http_request: Request, request: ResetPasswordRequest):
     """임시 비밀번호 생성 및 이메일 발송"""
     user = users_collection.get_by_field('email', request.email)
 

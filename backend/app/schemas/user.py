@@ -1,7 +1,8 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, validator
 from typing import Optional
 from datetime import datetime
 from enum import Enum
+import re
 
 
 class UserRole(str, Enum):
@@ -14,14 +15,41 @@ class UserRole(str, Enum):
 
 class UserBase(BaseModel):
     email: EmailStr
-    full_name: str
+    full_name: str = Field(..., min_length=1, max_length=100)
     role: UserRole = UserRole.VIEWER
+
+    @validator('full_name')
+    def validate_full_name(cls, v):
+        if not v or not v.strip():
+            raise ValueError('이름은 비어있을 수 없습니다')
+        # Remove potentially dangerous characters
+        v = v.strip()
+        if len(v) > 100:
+            raise ValueError('이름은 100자를 초과할 수 없습니다')
+        return v
 
 
 class UserCreate(BaseModel):
     email: EmailStr
-    full_name: str
-    password: str
+    full_name: str = Field(..., min_length=1, max_length=100)
+    password: str = Field(..., min_length=8, max_length=128)
+
+    @validator('password')
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError('비밀번호는 최소 8자 이상이어야 합니다')
+        if len(v) > 128:
+            raise ValueError('비밀번호는 128자를 초과할 수 없습니다')
+        return v
+
+    @validator('full_name')
+    def validate_full_name(cls, v):
+        if not v or not v.strip():
+            raise ValueError('이름은 비어있을 수 없습니다')
+        v = v.strip()
+        if len(v) > 100:
+            raise ValueError('이름은 100자를 초과할 수 없습니다')
+        return v
 
 
 class UserUpdate(BaseModel):
