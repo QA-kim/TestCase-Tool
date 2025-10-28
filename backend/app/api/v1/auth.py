@@ -155,14 +155,30 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     # Check if account is locked
     if user.get('is_locked', False):
         locked_until = user.get('locked_until')
-        if locked_until and datetime.utcnow() < locked_until:
-            remaining_minutes = int((locked_until - datetime.utcnow()).total_seconds() / 60)
-            locked_time_str = locked_until.strftime("%Y-%m-%d %H:%M:%S UTC")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"계정이 잠겼습니다. {remaining_minutes}분 후에 다시 시도해주세요.\n잠금 해제 시간: {locked_time_str}"
-            )
-        else:
+        if locked_until:
+            try:
+                # Ensure locked_until is a datetime object
+                if isinstance(locked_until, str):
+                    locked_until = datetime.fromisoformat(locked_until.replace('Z', '+00:00'))
+
+                if datetime.utcnow() < locked_until:
+                    remaining_minutes = int((locked_until - datetime.utcnow()).total_seconds() / 60)
+                    locked_time_str = locked_until.strftime("%Y-%m-%d %H:%M:%S UTC")
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail=f"계정이 잠겼습니다. {remaining_minutes}분 후에 다시 시도해주세요.\n잠금 해제 시간: {locked_time_str}"
+                    )
+            except (ValueError, AttributeError) as e:
+                logger.error(f"Error processing locked_until: {e}, locked_until={locked_until}")
+                # If there's an error processing locked_until, unlock the account
+                users_collection.update(user['id'], {
+                    'is_locked': False,
+                    'failed_login_attempts': 0,
+                    'locked_until': None
+                })
+                user['is_locked'] = False
+
+        if user.get('is_locked', False):  # Only try to unlock if still locked
             # Lock period expired, unlock account
             users_collection.update(user['id'], {
                 'is_locked': False,
