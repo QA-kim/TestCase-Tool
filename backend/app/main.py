@@ -47,10 +47,12 @@ app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["u
 
 
 @app.get("/")
+@app.head("/")
 def root():
     return {"message": "TCMS API with Firebase Firestore", "version": "1.0.0"}
 
 
 @app.get("/health")
+@app.head("/health")
 def health_check():
     return {"status": "healthy", "database": "firestore"}
