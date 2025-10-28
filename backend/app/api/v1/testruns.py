@@ -3,6 +3,7 @@ from typing import List
 
 from app.db.firestore import testruns_collection, testresults_collection
 from app.core.security import get_current_user_firestore
+from app.core.permissions import check_write_permission
 from app.schemas.testrun import (
     TestRunCreate,
     TestRunUpdate,
@@ -20,6 +21,9 @@ def create_testrun(
     testrun_in: TestRunCreate,
     current_user: dict = Depends(get_current_user_firestore)
 ):
+    # Check if user has permission to create test runs (viewer role cannot create)
+    check_write_permission(current_user, "테스트 실행")
+
     testrun_data = testrun_in.dict()  # Pydantic v1 uses .dict()
     testrun_data['status'] = 'planned'  # Default status
     testrun = testruns_collection.create(testrun_data)
@@ -68,6 +72,9 @@ def update_testrun(
             detail="Test run not found"
         )
 
+    # Check if user has permission to modify test runs
+    check_write_permission(current_user, "테스트 실행")
+
     update_data = testrun_in.dict(exclude_unset=True)  # Pydantic v1 uses .dict()
     testruns_collection.update(testrun_id, update_data)
 
@@ -87,6 +94,9 @@ def delete_testrun(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Test run not found"
         )
+
+    # Check if user has permission to delete test runs
+    check_write_permission(current_user, "테스트 실행")
 
     testruns_collection.delete(testrun_id)
     return None
