@@ -155,31 +155,22 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     # Check if account is locked
     if user.get('is_locked', False):
         locked_until = user.get('locked_until')
-        if locked_until:
-            try:
-                # Ensure locked_until is a datetime object
+        try:
+            # Ensure locked_until is a datetime object
+            if locked_until:
                 if isinstance(locked_until, str):
                     locked_until = datetime.fromisoformat(locked_until.replace('Z', '+00:00'))
 
-                if datetime.utcnow() < locked_until:
-                    remaining_minutes = int((locked_until - datetime.utcnow()).total_seconds() / 60)
+                # Check if lock is still active
+                if hasattr(locked_until, 'timestamp') and datetime.utcnow() < locked_until:
+                    remaining_minutes = max(1, int((locked_until - datetime.utcnow()).total_seconds() / 60))
                     locked_time_str = locked_until.strftime("%Y-%m-%d %H:%M:%S UTC")
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail=f"계정이 잠겼습니다. {remaining_minutes}분 후에 다시 시도해주세요.\n잠금 해제 시간: {locked_time_str}"
                     )
-            except (ValueError, AttributeError) as e:
-                logger.error(f"Error processing locked_until: {e}, locked_until={locked_until}")
-                # If there's an error processing locked_until, unlock the account
-                users_collection.update(user['id'], {
-                    'is_locked': False,
-                    'failed_login_attempts': 0,
-                    'locked_until': None
-                })
-                user['is_locked'] = False
 
-        if user.get('is_locked', False):  # Only try to unlock if still locked
-            # Lock period expired, unlock account
+            # If we get here, either no locked_until or lock expired - unlock account
             users_collection.update(user['id'], {
                 'is_locked': False,
                 'failed_login_attempts': 0,
@@ -187,6 +178,19 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
             })
             user['is_locked'] = False
             user['failed_login_attempts'] = 0
+
+        except HTTPException:
+            # Re-raise HTTPException (account is locked)
+            raise
+        except Exception as e:
+            # Log error and unlock account for any other errors
+            logger.error(f"Error processing locked_until: {e}, locked_until={locked_until}, type={type(locked_until)}")
+            users_collection.update(user['id'], {
+                'is_locked': False,
+                'failed_login_attempts': 0,
+                'locked_until': None
+            })
+            user['is_locked'] = False
 
     # Check if account is active
     if not user.get('is_active', True):
