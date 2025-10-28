@@ -118,3 +118,28 @@ def check_creation_permission(current_user: dict, resource_type: str = "리소�
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"{resource_type}을(를) 생성할 권한이 없습니다 (viewer 권한)"
         )
+
+
+def check_write_permission(current_user: dict, resource_type: str = "리소스"):
+    """
+    Check if user can create/modify/delete resources.
+    Viewer and developer roles cannot modify resources.
+
+    Args:
+        current_user: The current authenticated user
+        resource_type: Type of resource being modified
+
+    Raises:
+        HTTPException: If user doesn't have permission to write
+    """
+    user_role = current_user.get('role')
+
+    # Admin, QA Manager, QA Engineer can write
+    if user_role in ['admin', 'qa_manager', 'qa_engineer']:
+        return
+
+    # Viewer and Developer cannot write
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail=f"{resource_type}을(를) 수정할 권한이 없습니다 ({user_role} 권한)"
+    )
