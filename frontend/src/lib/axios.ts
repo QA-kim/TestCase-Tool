@@ -18,7 +18,7 @@ api.interceptors.request.use(
   }
 )
 
-// Response interceptor to handle 401 errors
+// Response interceptor to handle 401 and 403 errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -31,6 +31,12 @@ api.interceptors.response.use(
         localStorage.removeItem('token')
         window.location.href = '/login'
       }
+    } else if (error.response?.status === 403) {
+      // Dispatch custom event for 403 errors (permission denied)
+      const errorMessage = error.response?.data?.detail || '권한이 없습니다.'
+      window.dispatchEvent(new CustomEvent('permissionError', {
+        detail: { message: errorMessage }
+      }))
     }
     return Promise.reject(error)
   }

@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -10,6 +11,7 @@ import TestCases from './pages/TestCases'
 import TestCaseDetail from './pages/TestCaseDetail'
 import TestRuns from './pages/TestRuns'
 import TestRunDetail from './pages/TestRunDetail'
+import ErrorModal from './components/ErrorModal'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -18,6 +20,29 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const [permissionError, setPermissionError] = useState<string>('')
+  const [showPermissionModal, setShowPermissionModal] = useState(false)
+
+  useEffect(() => {
+    // Listen for permission errors from axios interceptor
+    const handlePermissionError = (event: Event) => {
+      const customEvent = event as CustomEvent
+      setPermissionError(customEvent.detail.message)
+      setShowPermissionModal(true)
+    }
+
+    window.addEventListener('permissionError', handlePermissionError)
+
+    return () => {
+      window.removeEventListener('permissionError', handlePermissionError)
+    }
+  }, [])
+
+  const closePermissionModal = () => {
+    setShowPermissionModal(false)
+    setPermissionError('')
+  }
+
   return (
     <AuthProvider>
       <Routes>
@@ -41,6 +66,14 @@ function App() {
           <Route path="testruns/:id" element={<TestRunDetail />} />
         </Route>
       </Routes>
+
+      {/* Global Permission Error Modal */}
+      <ErrorModal
+        isOpen={showPermissionModal}
+        onClose={closePermissionModal}
+        title="권한 없음"
+        message={permissionError}
+      />
     </AuthProvider>
   )
 }
