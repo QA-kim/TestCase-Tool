@@ -58,6 +58,11 @@ export default function TestCases() {
   const [showMoveModal, setShowMoveModal] = useState(false)
   const [moveToFolderId, setMoveToFolderId] = useState<string | undefined>(undefined)
 
+  // Drag and drop states
+  const [draggedTestCase, setDraggedTestCase] = useState<any>(null)
+  const [dropTarget, setDropTarget] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+
   const { data: projects } = useQuery('projects', async () => {
     const response = await api.get('/projects/')
     return response.data
@@ -467,36 +472,154 @@ export default function TestCases() {
     })
   }
 
+  // Build proper folder tree structure with children
+  const buildFolderTree = (folders: FolderType[]) => {
+    // Create a map for quick lookup
+    const folderMap = new Map<string, FolderType & { children: (FolderType & { children: any[] })[] }>()
+    folders.forEach(f => folderMap.set(f.id, { ...f, children: [] }))
+
+    // Build tree
+    const rootFolders: (FolderType & { children: any[] })[] = []
+    folders.forEach(folder => {
+      const folderWithChildren = folderMap.get(folder.id)
+      if (!folderWithChildren) return
+
+      if (folder.parent_id && folderMap.has(folder.parent_id)) {
+        const parent = folderMap.get(folder.parent_id)
+        if (parent) {
+          parent.children.push(folderWithChildren)
+        }
+      } else {
+        rootFolders.push(folderWithChildren)
+      }
+    })
+
+    // Sort at each level
+    const sortFolders = (folders: any[]) => {
+      folders.sort((a, b) => a.name.localeCompare(b.name))
+      folders.forEach(f => {
+        if (f.children && f.children.length > 0) {
+          sortFolders(f.children)
+        }
+      })
+    }
+    sortFolders(rootFolders)
+
+    return rootFolders
+  }
+
   // Organize folders into tree structure
   const folderTree = useMemo(() => {
     if (!folders) return []
-    const rootFolders = folders.filter((f: FolderType) => !f.parent_id)
-    const buildTree = (parentId?: string): FolderType[] => {
-      return folders
-        .filter((f: FolderType) => f.parent_id === parentId)
-        .sort((a, b) => a.name.localeCompare(b.name))
-    }
-    return rootFolders.sort((a, b) => a.name.localeCompare(b.name))
+    return buildFolderTree(folders)
   }, [folders])
-
-  const getChildFolders = (parentId: string) => {
-    if (!folders) return []
-    return folders
-      .filter((f: FolderType) => f.parent_id === parentId)
-      .sort((a, b) => a.name.localeCompare(b.name))
-  }
 
   const getTestCaseCountForFolder = (folderId: string): number => {
     if (!testcases) return 0
     return testcases.filter((tc: any) => tc.folder_id === folderId).length
   }
 
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, testcase: any) => {
+    setDraggedTestCase(testcase)
+    setIsDragging(true)
+    e.dataTransfer.effectAllowed = 'move'
+
+    // If testcase is part of selection, prepare to drag all selected
+    const testcaseIds = selectedTestCaseIds.has(String(testcase.id))
+      ? Array.from(selectedTestCaseIds)
+      : [String(testcase.id)]
+
+    e.dataTransfer.setData('text/plain', JSON.stringify(testcaseIds))
+
+    // Create a custom drag image showing count if multiple items
+    if (testcaseIds.length > 1) {
+      const dragImage = document.createElement('div')
+      dragImage.innerHTML = `
+        <div style="
+          background: #3B82F6;
+          color: white;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-weight: 600;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          font-size: 14px;
+        ">
+          ${testcaseIds.length} items
+        </div>
+      `
+      dragImage.style.position = 'absolute'
+      dragImage.style.top = '-1000px'
+      document.body.appendChild(dragImage)
+      e.dataTransfer.setDragImage(dragImage, 0, 0)
+      setTimeout(() => document.body.removeChild(dragImage), 0)
+    }
+  }
+
+  const handleDragEnd = () => {
+    setDraggedTestCase(null)
+    setIsDragging(false)
+    setDropTarget(null)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDragEnter = (e: React.DragEvent, folderId: string | null) => {
+    e.preventDefault()
+    setDropTarget(folderId)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if we're leaving the folder element itself
+    const relatedTarget = e.relatedTarget as HTMLElement
+    const currentTarget = e.currentTarget as HTMLElement
+    if (relatedTarget && !currentTarget.contains(relatedTarget)) {
+      setDropTarget(null)
+    }
+  }
+
+  const handleDrop = async (e: React.DragEvent, folderId: string | null) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    try {
+      const testcaseIdsJson = e.dataTransfer.getData('text/plain')
+      const testcaseIds = JSON.parse(testcaseIdsJson)
+
+      // Update all test cases in the drop
+      await Promise.all(
+        testcaseIds.map((id: string) =>
+          api.put(`/testcases/${id}`, { folder_id: folderId })
+        )
+      )
+
+      // Refresh test cases
+      queryClient.invalidateQueries('testcases')
+
+      // Clear selection if we dragged selected items
+      if (selectedTestCaseIds.size > 0 && testcaseIds.length > 1) {
+        setSelectedTestCaseIds(new Set())
+        setShowBulkActions(false)
+      }
+    } catch (error) {
+      console.error('Failed to move test case(s):', error)
+    } finally {
+      setDraggedTestCase(null)
+      setIsDragging(false)
+      setDropTarget(null)
+    }
+  }
+
   // Recursive folder rendering component
-  const FolderTreeItem = ({ folder, level = 0 }: { folder: FolderType; level?: number }) => {
+  const FolderTreeItem = ({ folder, level = 0 }: { folder: any; level?: number }) => {
     const isExpanded = expandedFolders.has(folder.id)
     const isSelected = selectedFolderId === folder.id
-    const childFolders = getChildFolders(folder.id)
+    const childFolders = folder.children || []
     const testCaseCount = getTestCaseCountForFolder(folder.id)
+    const isDropTarget = dropTarget === folder.id
 
     return (
       <div>
@@ -507,9 +630,15 @@ export default function TestCases() {
               toggleFolder(folder.id)
             }
           }}
+          onDragOver={handleDragOver}
+          onDragEnter={(e) => handleDragEnter(e, folder.id)}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => handleDrop(e, folder.id)}
           style={{ paddingLeft: `${level * 12 + 12}px` }}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-colors ${
-            isSelected ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+            isSelected ? 'bg-blue-50 text-blue-700' :
+            isDropTarget ? 'bg-green-100 border-2 border-green-400' :
+            'text-gray-700 hover:bg-gray-100'
           }`}
         >
           {childFolders.length > 0 ? (
@@ -560,7 +689,7 @@ export default function TestCases() {
             </div>
           )}
         </div>
-        {isExpanded && childFolders.map((child) => (
+        {isExpanded && childFolders.map((child: any) => (
           <FolderTreeItem key={child.id} folder={child} level={level + 1} />
         ))}
       </div>
@@ -621,6 +750,26 @@ export default function TestCases() {
                 {/* Folders under Project */}
                 {isExpanded && (
                   <div className="mt-1">
+                    {/* No Folder Drop Zone */}
+                    <div
+                      onDragOver={handleDragOver}
+                      onDragEnter={(e) => handleDragEnter(e, null)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, null)}
+                      className={`flex items-center gap-2 px-3 py-1.5 ml-6 rounded-md cursor-pointer transition-colors ${
+                        dropTarget === null && isDragging
+                          ? 'bg-green-100 border-2 border-green-400'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                      onClick={() => setSelectedFolderId(null)}
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span className="text-sm flex-1">폴더 없음</span>
+                      <span className="text-xs text-gray-500">
+                        {testcases?.filter((tc: any) => tc.project_id === project.id && !tc.folder_id).length || 0}
+                      </span>
+                    </div>
+
                     {isAdmin && (
                       <button
                         onClick={() => {
@@ -826,15 +975,28 @@ export default function TestCases() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filteredTestCases.map((testcase: any) => (
+                  {filteredTestCases.map((testcase: any) => {
+                    const isDraggingThis = draggedTestCase?.id === testcase.id
+                    const isInSelection = selectedTestCaseIds.has(String(testcase.id))
+                    const dragCount = isInSelection ? selectedTestCaseIds.size : 1
+
+                    return (
                     <tr
                       key={testcase.id}
+                      draggable={true}
+                      onDragStart={(e) => handleDragStart(e, testcase)}
+                      onDragEnd={handleDragEnd}
                       onClick={() => setSelectedTestCase(testcase)}
-                      className={`cursor-pointer transition-colors ${
+                      className={`cursor-move transition-colors ${
                         selectedTestCase?.id === testcase.id
                           ? 'bg-blue-50'
+                          : isDraggingThis
+                          ? 'opacity-50 bg-gray-100'
                           : 'hover:bg-gray-50'
                       }`}
+                      style={{
+                        cursor: isDragging ? 'move' : 'pointer'
+                      }}
                     >
                       {isAdmin && (
                         <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
@@ -896,7 +1058,8 @@ export default function TestCases() {
                         </td>
                       )}
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
