@@ -4,7 +4,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
-from app.api.v1 import auth, projects, testcases, testruns, testresults, users
+from app.api.v1 import auth, projects, testcases, testruns, testresults, users, folders
 from app.middleware import SecurityHeadersMiddleware
 
 # Rate limiter
@@ -40,6 +40,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(projects.router, prefix=f"{settings.API_V1_STR}/projects", tags=["projects"])
+app.include_router(folders.router, prefix=f"{settings.API_V1_STR}/folders", tags=["folders"])
 app.include_router(testcases.router, prefix=f"{settings.API_V1_STR}/testcases", tags=["testcases"])
 app.include_router(testruns.router, prefix=f"{settings.API_V1_STR}/testruns", tags=["testruns"])
 app.include_router(testresults.router, prefix=f"{settings.API_V1_STR}/testresults", tags=["testresults"])
