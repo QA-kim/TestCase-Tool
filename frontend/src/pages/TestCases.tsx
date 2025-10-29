@@ -4,10 +4,11 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import {
   Plus, Edit2, Trash2, X, Search, ChevronDown, ChevronRight,
   Folder, FolderOpen, FileText, ArrowUp, ArrowDown, Circle, MoreVertical,
-  Download, Upload, AlertCircle, CheckCircle
+  Download, Upload, AlertCircle, CheckCircle, FolderPlus, Move
 } from 'lucide-react'
 import api from '../lib/axios'
 import { useAuth } from '../contexts/AuthContext'
+import { foldersApi, Folder as FolderType } from '../services/folders'
 
 export default function TestCases() {
   const { user } = useAuth()
@@ -30,12 +31,32 @@ export default function TestCases() {
     priority: 'medium',
     test_type: 'functional',
     project_id: 1,
+    folder_id: undefined as string | undefined,
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [importResult, setImportResult] = useState<{success: boolean, imported_count: number, errors: string[]} | null>(null)
   const [showImportResult, setShowImportResult] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
+
+  // Folder states
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
+  const [openFolderModal, setOpenFolderModal] = useState(false)
+  const [editFolderMode, setEditFolderMode] = useState(false)
+  const [editFolderId, setEditFolderId] = useState<string | null>(null)
+  const [folderFormData, setFolderFormData] = useState({
+    name: '',
+    description: '',
+    parent_id: undefined as string | undefined,
+  })
+  const [folderErrors, setFolderErrors] = useState<Record<string, string>>({})
+
+  // Multi-select states
+  const [selectedTestCaseIds, setSelectedTestCaseIds] = useState<Set<string>>(new Set())
+  const [showBulkActions, setShowBulkActions] = useState(false)
+  const [showMoveModal, setShowMoveModal] = useState(false)
+  const [moveToFolderId, setMoveToFolderId] = useState<string | undefined>(undefined)
 
   const { data: projects } = useQuery('projects', async () => {
     const response = await api.get('/projects/')
@@ -46,6 +67,18 @@ export default function TestCases() {
     const response = await api.get('/testcases/')
     return response.data
   })
+
+  // Fetch folders for selected project
+  const { data: folders } = useQuery(
+    ['folders', selectedProjectId],
+    async () => {
+      if (!selectedProjectId) return []
+      return await foldersApi.list(String(selectedProjectId))
+    },
+    {
+      enabled: !!selectedProjectId,
+    }
+  )
 
   const createMutation = useMutation(
     (data: any) => api.post('/testcases/', data),
@@ -79,6 +112,69 @@ export default function TestCases() {
         if (selectedTestCase?.id === testcaseId) {
           setSelectedTestCase(null)
         }
+      },
+    }
+  )
+
+  // Folder mutations
+  const createFolderMutation = useMutation(
+    (data: any) => foldersApi.create(data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['folders', selectedProjectId])
+        handleCloseFolderModal()
+      },
+    }
+  )
+
+  const updateFolderMutation = useMutation(
+    ({ id, data }: { id: string; data: any }) => foldersApi.update(id, data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['folders', selectedProjectId])
+        handleCloseFolderModal()
+      },
+    }
+  )
+
+  const deleteFolderMutation = useMutation(
+    (folderId: string) => foldersApi.delete(folderId),
+    {
+      onSuccess: (_data, deletedFolderId) => {
+        queryClient.invalidateQueries(['folders', selectedProjectId])
+        if (selectedFolderId === deletedFolderId) {
+          setSelectedFolderId(null)
+        }
+      },
+    }
+  )
+
+  // Bulk delete mutation
+  const bulkDeleteMutation = useMutation(
+    async (ids: string[]) => {
+      await Promise.all(ids.map(id => api.delete(`/testcases/${id}`)))
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('testcases')
+        setSelectedTestCaseIds(new Set())
+        setShowBulkActions(false)
+        setSelectedTestCase(null)
+      },
+    }
+  )
+
+  // Bulk move mutation
+  const bulkMoveMutation = useMutation(
+    async ({ ids, folderId }: { ids: string[]; folderId?: string }) => {
+      await Promise.all(ids.map(id => api.put(`/testcases/${id}`, { folder_id: folderId })))
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('testcases')
+        setSelectedTestCaseIds(new Set())
+        setShowBulkActions(false)
+        setShowMoveModal(false)
       },
     }
   )
@@ -145,8 +241,21 @@ export default function TestCases() {
       priority: 'medium',
       test_type: 'functional',
       project_id: selectedProjectId || projects?.[0]?.id || 1,
+      folder_id: selectedFolderId || undefined,
     })
     setErrors({})
+  }
+
+  const handleCloseFolderModal = () => {
+    setOpenFolderModal(false)
+    setEditFolderMode(false)
+    setEditFolderId(null)
+    setFolderFormData({
+      name: '',
+      description: '',
+      parent_id: undefined,
+    })
+    setFolderErrors({})
   }
 
   const handleEdit = (testcase: any) => {
@@ -161,9 +270,28 @@ export default function TestCases() {
       priority: testcase.priority,
       test_type: testcase.test_type,
       project_id: testcase.project_id,
+      folder_id: testcase.folder_id,
     })
     setErrors({})
     setOpen(true)
+  }
+
+  const handleEditFolder = (folder: FolderType) => {
+    setEditFolderMode(true)
+    setEditFolderId(folder.id)
+    setFolderFormData({
+      name: folder.name,
+      description: folder.description || '',
+      parent_id: folder.parent_id,
+    })
+    setFolderErrors({})
+    setOpenFolderModal(true)
+  }
+
+  const handleDeleteFolder = (folderId: string) => {
+    if (window.confirm('정말 삭제하시겠습니까? 하위 폴더와 테스트 케이스도 영향을 받을 수 있습니다.')) {
+      deleteFolderMutation.mutate(folderId)
+    }
   }
 
   const validateForm = () => {
@@ -185,6 +313,31 @@ export default function TestCases() {
       updateMutation.mutate({ id: editId, data: formData })
     } else {
       createMutation.mutate(formData)
+    }
+  }
+
+  const validateFolderForm = () => {
+    const newErrors: Record<string, string> = {}
+    if (!folderFormData.name.trim()) {
+      newErrors.name = '폴더 이름을 입력해주세요'
+    }
+    setFolderErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleFolderSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!validateFolderForm()) return
+
+    const data = {
+      ...folderFormData,
+      project_id: String(selectedProjectId),
+    }
+
+    if (editFolderMode && editFolderId) {
+      updateFolderMutation.mutate({ id: editFolderId, data: folderFormData })
+    } else {
+      createFolderMutation.mutate(data)
     }
   }
 
@@ -241,13 +394,14 @@ export default function TestCases() {
     if (!testcases) return []
     return testcases.filter((testcase: any) => {
       const matchesProject = !selectedProjectId || testcase.project_id === selectedProjectId
+      const matchesFolder = selectedFolderId === null || testcase.folder_id === selectedFolderId
       const matchesSearch = testcase.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            testcase.description?.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesPriority = priorityFilter === 'all' || testcase.priority === priorityFilter
       const matchesType = typeFilter === 'all' || testcase.test_type === typeFilter
-      return matchesProject && matchesSearch && matchesPriority && matchesType
+      return matchesProject && matchesFolder && matchesSearch && matchesPriority && matchesType
     })
-  }, [testcases, selectedProjectId, searchQuery, priorityFilter, typeFilter])
+  }, [testcases, selectedProjectId, selectedFolderId, searchQuery, priorityFilter, typeFilter])
 
   const selectedProject = useMemo(() => {
     return projects?.find((p: any) => p.id === selectedProjectId)
@@ -263,9 +417,159 @@ export default function TestCases() {
     setExpandedProjects(newExpanded)
   }
 
+  const toggleFolder = (folderId: string) => {
+    const newExpanded = new Set(expandedFolders)
+    if (newExpanded.has(folderId)) {
+      newExpanded.delete(folderId)
+    } else {
+      newExpanded.add(folderId)
+    }
+    setExpandedFolders(newExpanded)
+  }
+
+  // Multi-select handlers
+  const handleSelectTestCase = (testcaseId: string) => {
+    const newSelected = new Set(selectedTestCaseIds)
+    if (newSelected.has(testcaseId)) {
+      newSelected.delete(testcaseId)
+    } else {
+      newSelected.add(testcaseId)
+    }
+    setSelectedTestCaseIds(newSelected)
+    setShowBulkActions(newSelected.size > 0)
+  }
+
+  const handleSelectAll = () => {
+    if (selectedTestCaseIds.size === filteredTestCases.length) {
+      setSelectedTestCaseIds(new Set<string>())
+      setShowBulkActions(false)
+    } else {
+      const allIds = new Set<string>(filteredTestCases.map((tc: any) => String(tc.id)))
+      setSelectedTestCaseIds(allIds)
+      setShowBulkActions(true)
+    }
+  }
+
+  const handleBulkDelete = () => {
+    if (window.confirm(`선택한 ${selectedTestCaseIds.size}개의 테스트 케이스를 삭제하시겠습니까?`)) {
+      bulkDeleteMutation.mutate(Array.from(selectedTestCaseIds))
+    }
+  }
+
+  const handleBulkMove = () => {
+    setShowMoveModal(true)
+  }
+
+  const confirmBulkMove = () => {
+    bulkMoveMutation.mutate({
+      ids: Array.from(selectedTestCaseIds),
+      folderId: moveToFolderId
+    })
+  }
+
+  // Organize folders into tree structure
+  const folderTree = useMemo(() => {
+    if (!folders) return []
+    const rootFolders = folders.filter((f: FolderType) => !f.parent_id)
+    const buildTree = (parentId?: string): FolderType[] => {
+      return folders
+        .filter((f: FolderType) => f.parent_id === parentId)
+        .sort((a, b) => a.name.localeCompare(b.name))
+    }
+    return rootFolders.sort((a, b) => a.name.localeCompare(b.name))
+  }, [folders])
+
+  const getChildFolders = (parentId: string) => {
+    if (!folders) return []
+    return folders
+      .filter((f: FolderType) => f.parent_id === parentId)
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  const getTestCaseCountForFolder = (folderId: string): number => {
+    if (!testcases) return 0
+    return testcases.filter((tc: any) => tc.folder_id === folderId).length
+  }
+
+  // Recursive folder rendering component
+  const FolderTreeItem = ({ folder, level = 0 }: { folder: FolderType; level?: number }) => {
+    const isExpanded = expandedFolders.has(folder.id)
+    const isSelected = selectedFolderId === folder.id
+    const childFolders = getChildFolders(folder.id)
+    const testCaseCount = getTestCaseCountForFolder(folder.id)
+
+    return (
+      <div>
+        <div
+          onClick={() => {
+            setSelectedFolderId(folder.id)
+            if (childFolders.length > 0) {
+              toggleFolder(folder.id)
+            }
+          }}
+          style={{ paddingLeft: `${level * 12 + 12}px` }}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-colors ${
+            isSelected ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          {childFolders.length > 0 ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                toggleFolder(folder.id)
+              }}
+              className="p-0.5 hover:bg-gray-200 rounded"
+            >
+              {isExpanded ? (
+                <ChevronDown className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5" />
+              )}
+            </button>
+          ) : (
+            <span className="w-4"></span>
+          )}
+          {isExpanded && childFolders.length > 0 ? (
+            <FolderOpen className="w-3.5 h-3.5" />
+          ) : (
+            <Folder className="w-3.5 h-3.5" />
+          )}
+          <span className="text-sm flex-1 truncate">{folder.name}</span>
+          <span className="text-xs text-gray-500">{testCaseCount}</span>
+          {isAdmin && (
+            <div className="relative group inline-block" onClick={(e) => e.stopPropagation()}>
+              <button className="p-0.5 text-gray-400 hover:text-gray-600 rounded opacity-0 group-hover:opacity-100">
+                <MoreVertical className="w-3.5 h-3.5" />
+              </button>
+              <div className="absolute left-0 mt-1 w-28 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                <button
+                  onClick={() => handleEditFolder(folder)}
+                  className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Edit2 className="w-3 h-3" />
+                  수정
+                </button>
+                <button
+                  onClick={() => handleDeleteFolder(folder.id)}
+                  className="w-full px-3 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  삭제
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+        {isExpanded && childFolders.map((child) => (
+          <FolderTreeItem key={child.id} folder={child} level={level + 1} />
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="h-full flex">
-      {/* Left Sidebar - Project Tree */}
+      {/* Left Sidebar - Project and Folder Tree */}
       <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
         {/* Sidebar Header */}
         <div className="px-4 py-4 border-b border-gray-200">
@@ -285,10 +589,11 @@ export default function TestCases() {
                 <div
                   onClick={() => {
                     setSelectedProjectId(project.id)
+                    setSelectedFolderId(null)
                     toggleProject(project.id)
                   }}
                   className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors ${
-                    isSelected ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+                    isSelected && selectedFolderId === null ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
                   <button
@@ -313,22 +618,23 @@ export default function TestCases() {
                   <span className="text-xs text-gray-500">{projectTestCases.length}</span>
                 </div>
 
-                {/* Test Cases under Project */}
-                {isExpanded && projectTestCases.length > 0 && (
-                  <div className="ml-6 mt-1 space-y-0.5">
-                    {projectTestCases.map((tc: any) => (
-                      <div
-                        key={tc.id}
-                        onClick={() => setSelectedTestCase(tc)}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer text-sm transition-colors ${
-                          selectedTestCase?.id === tc.id
-                            ? 'bg-blue-50 text-blue-700'
-                            : 'text-gray-600 hover:bg-gray-100'
-                        }`}
+                {/* Folders under Project */}
+                {isExpanded && (
+                  <div className="mt-1">
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setFolderFormData({ name: '', description: '', parent_id: undefined })
+                          setOpenFolderModal(true)
+                        }}
+                        className="flex items-center gap-2 px-3 py-1.5 ml-6 text-xs text-gray-600 hover:text-blue-600 transition-colors"
                       >
-                        <FileText className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="truncate flex-1">{tc.title}</span>
-                      </div>
+                        <FolderPlus className="w-3.5 h-3.5" />
+                        <span>폴더 추가</span>
+                      </button>
+                    )}
+                    {folderTree.map((folder) => (
+                      <FolderTreeItem key={folder.id} folder={folder} />
                     ))}
                   </div>
                 )}
@@ -357,38 +663,72 @@ export default function TestCases() {
             </div>
             {isAdmin && (
               <div className="flex items-center gap-3">
-                <button
-                  onClick={handleDownloadTemplate}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-sm font-medium"
-                >
-                  <Download className="w-4 h-4" />
-                  Excel 템플릿
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
-                >
-                  <Upload className="w-4 h-4" />
-                  Excel Import
-                </button>
-                {selectedProjectId && (
-                  <button
-                    onClick={() => {
-                      setFormData({ ...formData, project_id: selectedProjectId })
-                      setOpen(true)
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
-                  >
-                    <Plus className="w-4 h-4" />
-                    새 테스트 케이스
-                  </button>
+                {showBulkActions ? (
+                  <>
+                    <span className="text-sm text-gray-600">
+                      {selectedTestCaseIds.size}개 선택됨
+                    </span>
+                    <button
+                      onClick={handleBulkMove}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                    >
+                      <Move className="w-4 h-4" />
+                      폴더 이동
+                    </button>
+                    <button
+                      onClick={handleBulkDelete}
+                      className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      삭제
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedTestCaseIds(new Set())
+                        setShowBulkActions(false)
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-sm font-medium"
+                    >
+                      <X className="w-4 h-4" />
+                      취소
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleDownloadTemplate}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-sm font-medium"
+                    >
+                      <Download className="w-4 h-4" />
+                      Excel 템플릿
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Excel Import
+                    </button>
+                    {selectedProjectId && (
+                      <button
+                        onClick={() => {
+                          setFormData({ ...formData, project_id: selectedProjectId, folder_id: selectedFolderId || undefined })
+                          setOpen(true)
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                      >
+                        <Plus className="w-4 h-4" />
+                        새 테스트 케이스
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -459,9 +799,16 @@ export default function TestCases() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      <input type="checkbox" className="rounded border-gray-300" />
-                    </th>
+                    {isAdmin && (
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase w-16">
+                        <input
+                          type="checkbox"
+                          checked={filteredTestCases.length > 0 && selectedTestCaseIds.size === filteredTestCases.length}
+                          onChange={handleSelectAll}
+                          className="rounded border-gray-300 cursor-pointer"
+                        />
+                      </th>
+                    )}
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                       테스트 케이스
                     </th>
@@ -471,9 +818,11 @@ export default function TestCases() {
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase w-28">
                       유형
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase w-20">
-                      작업
-                    </th>
+                    {isAdmin && (
+                      <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase w-20">
+                        작업
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -487,9 +836,16 @@ export default function TestCases() {
                           : 'hover:bg-gray-50'
                       }`}
                     >
-                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                        <input type="checkbox" className="rounded border-gray-300" />
-                      </td>
+                      {isAdmin && (
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedTestCaseIds.has(String(testcase.id))}
+                            onChange={() => handleSelectTestCase(String(testcase.id))}
+                            className="rounded border-gray-300 cursor-pointer"
+                          />
+                        </td>
+                      )}
                       <td className="px-6 py-4">
                         <div className="flex items-start gap-2">
                           <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
@@ -514,8 +870,8 @@ export default function TestCases() {
                           {getTypeLabel(testcase.test_type)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                        {isAdmin && (
+                      {isAdmin && (
+                        <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="relative group inline-block">
                             <button className="p-1 text-gray-400 hover:text-gray-600 rounded">
                               <MoreVertical className="w-4 h-4" />
@@ -537,8 +893,8 @@ export default function TestCases() {
                               </button>
                             </div>
                           </div>
-                        )}
-                      </td>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -681,7 +1037,7 @@ export default function TestCases() {
                     {errors.title && <p className="mt-1 text-xs text-red-600">{errors.title}</p>}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">우선순위 *</label>
                       <select
@@ -707,6 +1063,21 @@ export default function TestCases() {
                         <option value="smoke">스모크</option>
                         <option value="performance">성능</option>
                         <option value="security">보안</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">폴더</label>
+                      <select
+                        value={formData.folder_id || ''}
+                        onChange={(e) => setFormData({ ...formData, folder_id: e.target.value || undefined })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                      >
+                        <option value="">폴더 없음</option>
+                        {folders?.map((folder: FolderType) => (
+                          <option key={folder.id} value={folder.id}>
+                            {folder.name}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -824,6 +1195,147 @@ export default function TestCases() {
                   className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
                 >
                   확인
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Folder Modal */}
+      {openFolderModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity" onClick={handleCloseFolderModal} />
+            <div className="relative inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h3 className="text-xl font-semibold text-gray-900">
+                  {editFolderMode ? '폴더 수정' : '새 폴더'}
+                </h3>
+                <button onClick={handleCloseFolderModal} className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleFolderSubmit}>
+                <div className="px-6 py-4 space-y-4">
+                  <div>
+                    <label htmlFor="folder-name" className="block text-sm font-medium text-gray-700 mb-1">
+                      폴더 이름 *
+                    </label>
+                    <input
+                      id="folder-name"
+                      type="text"
+                      required
+                      autoFocus
+                      value={folderFormData.name}
+                      onChange={(e) => setFolderFormData({ ...folderFormData, name: e.target.value })}
+                      className={`w-full px-3 py-2 border ${folderErrors.name ? 'border-red-500' : 'border-gray-300'} rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
+                      placeholder="폴더 이름"
+                    />
+                    {folderErrors.name && <p className="mt-1 text-xs text-red-600">{folderErrors.name}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">상위 폴더</label>
+                    <select
+                      value={folderFormData.parent_id || ''}
+                      onChange={(e) => setFolderFormData({ ...folderFormData, parent_id: e.target.value || undefined })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                      <option value="">없음 (최상위)</option>
+                      {folders?.filter((f: FolderType) => !editFolderMode || f.id !== editFolderId).map((folder: FolderType) => (
+                        <option key={folder.id} value={folder.id}>
+                          {folder.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">설명</label>
+                    <textarea
+                      rows={2}
+                      value={folderFormData.description}
+                      onChange={(e) => setFolderFormData({ ...folderFormData, description: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                      placeholder="폴더 설명"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={handleCloseFolderModal}
+                    className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={createFolderMutation.isLoading || updateFolderMutation.isLoading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {createFolderMutation.isLoading || updateFolderMutation.isLoading ? '처리 중...' : editFolderMode ? '수정' : '생성'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move to Folder Modal */}
+      {showMoveModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity" onClick={() => setShowMoveModal(false)} />
+            <div className="relative inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h3 className="text-xl font-semibold text-gray-900">
+                  폴더 이동
+                </h3>
+                <button onClick={() => setShowMoveModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="px-6 py-4">
+                <p className="text-sm text-gray-600 mb-4">
+                  {selectedTestCaseIds.size}개의 테스트 케이스를 이동할 폴더를 선택하세요.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">대상 폴더</label>
+                  <select
+                    value={moveToFolderId || ''}
+                    onChange={(e) => setMoveToFolderId(e.target.value || undefined)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    <option value="">폴더 없음</option>
+                    {folders?.map((folder: FolderType) => (
+                      <option key={folder.id} value={folder.id}>
+                        {folder.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setShowMoveModal(false)}
+                  className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={confirmBulkMove}
+                  disabled={bulkMoveMutation.isLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {bulkMoveMutation.isLoading ? '이동 중...' : '이동'}
                 </button>
               </div>
             </div>
