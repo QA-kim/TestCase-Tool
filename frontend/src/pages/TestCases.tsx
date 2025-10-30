@@ -728,6 +728,8 @@ export default function TestCases() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
+                      setSelectedProjectId(project.id)
+                      setSelectedFolderId(null)
                       toggleProject(project.id)
                     }}
                     className="p-0.5 hover:bg-gray-200 rounded"
@@ -756,7 +758,7 @@ export default function TestCases() {
                           setFolderFormData({ name: '', description: '', parent_id: undefined })
                           setOpenFolderModal(true)
                         }}
-                        className="flex items-center gap-2 px-3 py-1.5 ml-6 text-xs text-gray-600 hover:text-blue-600 transition-colors"
+                        className="flex items-center gap-2 px-3 py-1.5 ml-6 text-xs text-green-600 hover:text-green-700 hover:bg-green-50 rounded transition-colors"
                       >
                         <FolderPlus className="w-3.5 h-3.5" />
                         <span>폴더 추가</span>
