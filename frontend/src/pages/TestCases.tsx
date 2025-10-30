@@ -728,6 +728,8 @@ export default function TestCases() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
+                      setSelectedProjectId(project.id)
+                      setSelectedFolderId(null)
                       toggleProject(project.id)
                     }}
                     className="p-0.5 hover:bg-gray-200 rounded"
@@ -750,33 +752,13 @@ export default function TestCases() {
                 {/* Folders under Project */}
                 {isExpanded && (
                   <div className="mt-1">
-                    {/* No Folder Drop Zone */}
-                    <div
-                      onDragOver={handleDragOver}
-                      onDragEnter={(e) => handleDragEnter(e, null)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, null)}
-                      className={`flex items-center gap-2 px-3 py-1.5 ml-6 rounded-md cursor-pointer transition-colors ${
-                        dropTarget === null && isDragging
-                          ? 'bg-green-100 border-2 border-green-400'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                      onClick={() => setSelectedFolderId(null)}
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      <span className="text-sm flex-1">폴더 없음</span>
-                      <span className="text-xs text-gray-500">
-                        {testcases?.filter((tc: any) => tc.project_id === project.id && !tc.folder_id).length || 0}
-                      </span>
-                    </div>
-
                     {isAdmin && (
                       <button
                         onClick={() => {
                           setFolderFormData({ name: '', description: '', parent_id: undefined })
                           setOpenFolderModal(true)
                         }}
-                        className="flex items-center gap-2 px-3 py-1.5 ml-6 text-xs text-gray-600 hover:text-blue-600 transition-colors"
+                        className="flex items-center gap-2 px-3 py-1.5 ml-6 text-xs text-green-600 hover:text-green-700 hover:bg-green-50 rounded transition-colors"
                       >
                         <FolderPlus className="w-3.5 h-3.5" />
                         <span>폴더 추가</span>
