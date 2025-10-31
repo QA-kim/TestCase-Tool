@@ -750,6 +750,9 @@ export default function TestCases() {
                 {/* Folders under Project */}
                 {isExpanded && (
                   <div className="mt-1">
+                    {folderTree.map((folder) => (
+                      <FolderTreeItem key={folder.id} folder={folder} />
+                    ))}
                     {isAdmin && (
                       <button
                         onClick={() => {
@@ -762,9 +765,6 @@ export default function TestCases() {
                         <span>폴더 추가</span>
                       </button>
                     )}
-                    {folderTree.map((folder) => (
-                      <FolderTreeItem key={folder.id} folder={folder} />
-                    ))}
                   </div>
                 )}
               </div>
