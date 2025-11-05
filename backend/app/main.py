@@ -27,10 +27,13 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
         "http://localhost:5173",
         "http://localhost:5174",
         "https://testcase-e27a4.web.app",
-        "https://testcase-e27a4.firebaseapp.com"
+        "https://testcase-e27a4.firebaseapp.com",
+        "https://tms.r-e.kr"
     ],
     allow_credentials=True,
     allow_methods=["*"],
