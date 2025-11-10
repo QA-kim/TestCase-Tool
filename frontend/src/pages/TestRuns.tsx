@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Plus, Edit2, Trash2, X } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Search, Filter, Download } from 'lucide-react'
 import api from '../lib/axios'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -21,6 +21,14 @@ export default function TestRuns() {
     project_id: '',
     test_case_ids: [] as string[],
   })
+
+  // Advanced filtering states
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterProject, setFilterProject] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
+  const [filterEnvironment, setFilterEnvironment] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+
   const queryClient = useQueryClient()
 
   const { data: projects } = useQuery('projects', async () => {
@@ -143,6 +151,63 @@ export default function TestRuns() {
     return testcases.filter((tc: any) => tc.project_id === formData.project_id)
   }, [testcases, formData.project_id])
 
+  // Advanced filtering for test runs list
+  const filteredTestruns = useMemo(() => {
+    if (!testruns) return []
+
+    return testruns.filter((testrun: any) => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase()
+        const matchesName = testrun.name?.toLowerCase().includes(query)
+        const matchesDescription = testrun.description?.toLowerCase().includes(query)
+        if (!matchesName && !matchesDescription) return false
+      }
+
+      // Project filter
+      if (filterProject && testrun.project_id !== filterProject) return false
+
+      // Status filter
+      if (filterStatus && testrun.status !== filterStatus) return false
+
+      // Environment filter
+      if (filterEnvironment && testrun.environment !== filterEnvironment) return false
+
+      return true
+    })
+  }, [testruns, searchQuery, filterProject, filterStatus, filterEnvironment])
+
+  // Get unique environments for filter dropdown
+  const environments = useMemo(() => {
+    if (!testruns) return []
+    const envSet = new Set(testruns.map((tr: any) => tr.environment).filter(Boolean))
+    return Array.from(envSet)
+  }, [testruns])
+
+  // Export to CSV
+  const handleExportCSV = async () => {
+    try {
+      const params: any = {}
+      if (filterProject) params.project_id = filterProject
+
+      const response = await api.get('/exports/testruns/csv', {
+        params,
+        responseType: 'blob',
+      })
+
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `testruns_${new Date().toISOString().split('T')[0]}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch (error) {
+      console.error('Failed to export CSV:', error)
+      alert('CSV 내보내기에 실패했습니다.')
+    }
+  }
+
   // Toggle test case selection
   const handleTestCaseToggle = (testcaseId: string) => {
     setFormData(prev => ({
@@ -159,27 +224,146 @@ export default function TestRuns() {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">테스트 실행</h1>
-          <p className="text-gray-600">전체 {testruns?.length || 0}개의 테스트 실행</p>
+          <p className="text-gray-600">
+            전체 {testruns?.length || 0}개 중 {filteredTestruns?.length || 0}개 표시
+          </p>
         </div>
-        <button
-          onClick={() => {
-            // Reset form and set first project as default
-            setFormData({
-              name: '',
-              description: '',
-              status: 'planned',
-              environment: '',
-              milestone: '',
-              project_id: projects?.[0]?.id || '',
-              test_case_ids: [],
-            })
-            setOpen(true)
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="font-medium">새 테스트 실행</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            <span className="font-medium">CSV 내보내기</span>
+          </button>
+          <button
+            onClick={() => {
+              // Reset form and set first project as default
+              setFormData({
+                name: '',
+                description: '',
+                status: 'planned',
+                environment: '',
+                milestone: '',
+                project_id: projects?.[0]?.id || '',
+                test_case_ids: [],
+              })
+              setOpen(true)
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="font-medium">새 테스트 실행</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="space-y-4">
+        {/* Search Bar */}
+        <div className="flex items-center gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="테스트 실행 이름 또는 설명으로 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              showFilters
+                ? 'bg-primary-100 text-primary-700 border-2 border-primary-300'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            <span className="font-medium">필터</span>
+          </button>
+        </div>
+
+        {/* Advanced Filters */}
+        {showFilters && (
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Project Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  프로젝트
+                </label>
+                <select
+                  value={filterProject}
+                  onChange={(e) => setFilterProject(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">전체 프로젝트</option>
+                  {projects?.map((project: any) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  상태
+                </label>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">전체 상태</option>
+                  <option value="planned">계획됨</option>
+                  <option value="in_progress">진행 중</option>
+                  <option value="completed">완료됨</option>
+                  <option value="cancelled">취소됨</option>
+                </select>
+              </div>
+
+              {/* Environment Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  환경
+                </label>
+                <select
+                  value={filterEnvironment}
+                  onChange={(e) => setFilterEnvironment(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">전체 환경</option>
+                  {environments.map((env: string) => (
+                    <option key={env} value={env}>
+                      {env}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Clear Filters */}
+            {(searchQuery || filterProject || filterStatus || filterEnvironment) && (
+              <div className="mt-4 flex items-center justify-end">
+                <button
+                  onClick={() => {
+                    setSearchQuery('')
+                    setFilterProject('')
+                    setFilterStatus('')
+                    setFilterEnvironment('')
+                  }}
+                  className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  모든 필터 초기화
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -218,14 +402,16 @@ export default function TestRuns() {
                     로딩 중...
                   </td>
                 </tr>
-              ) : testruns?.length === 0 ? (
+              ) : filteredTestruns?.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                    테스트 실행이 없습니다.
+                    {testruns?.length === 0
+                      ? '테스트 실행이 없습니다.'
+                      : '검색 결과가 없습니다. 필터를 조정해보세요.'}
                   </td>
                 </tr>
               ) : (
-                testruns?.map((testrun: any) => (
+                filteredTestruns?.map((testrun: any) => (
                   <tr
                     key={testrun.id}
                     className="hover:bg-gray-50 transition-colors cursor-pointer"
