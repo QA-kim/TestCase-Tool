@@ -5,6 +5,7 @@ import {
   FolderOpen,
   FileText,
   Play,
+  BarChart3,
   LogOut,
   User,
   Settings,
@@ -38,6 +39,7 @@ export default function Layout() {
 
   const menuItems = [
     { text: '대시보드', icon: Home, path: '/' },
+    { text: '보고서', icon: BarChart3, path: '/reports' },
     { text: '프로젝트', icon: FolderOpen, path: '/projects' },
     { text: '테스트 케이스', icon: FileText, path: '/testcases' },
     { text: '테스트 실행', icon: Play, path: '/testruns' },
