@@ -181,7 +181,7 @@ export default function TestRuns() {
   const environments = useMemo(() => {
     if (!testruns) return []
     const envSet = new Set(testruns.map((tr: any) => tr.environment).filter(Boolean))
-    return Array.from(envSet)
+    return Array.from(envSet) as string[]
   }, [testruns])
 
   // Export to CSV
