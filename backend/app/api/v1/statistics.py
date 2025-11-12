@@ -69,7 +69,7 @@ def get_overall_statistics(
 
     # 최근 7일간 활동
     recent_activity = defaultdict(int)
-    seven_days_ago = datetime.now() - timedelta(days=7)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
     for tr in testruns:
         created_at = tr.get('created_at')
         if created_at and isinstance(created_at, datetime) and created_at >= seven_days_ago:
@@ -199,7 +199,7 @@ def get_trend_statistics(
     """추세 통계 조회 (시간별 합격률 추이)"""
 
     # 기간 계산
-    now = datetime.now()
+    now = datetime.utcnow()
     if period == 'week':
         start_date = now - timedelta(days=7)
         date_format = '%Y-%m-%d'
