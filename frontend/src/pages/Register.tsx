@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { Check, X } from 'lucide-react'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -13,6 +14,16 @@ export default function Register() {
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Password validation status
+  const passwordValidation = useMemo(() => {
+    const password = formData.password
+    return {
+      minLength: password.length >= 8,
+      hasLetter: /[a-zA-Z]/.test(password),
+      hasNumber: /\d/.test(password),
+    }
+  }, [formData.password])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,8 +40,19 @@ export default function Register() {
       return
     }
 
-    if (formData.password.length < 6) {
-      setError('비밀번호는 최소 6자 이상이어야 합니다.')
+    // Password validation
+    if (formData.password.length < 8) {
+      setError('비밀번호는 최소 8자 이상이어야 합니다.')
+      return
+    }
+
+    if (!/[a-zA-Z]/.test(formData.password)) {
+      setError('비밀번호는 최소 1개의 영문자를 포함해야 합니다.')
+      return
+    }
+
+    if (!/\d/.test(formData.password)) {
+      setError('비밀번호는 최소 1개의 숫자를 포함해야 합니다.')
       return
     }
 
@@ -110,8 +132,34 @@ export default function Register() {
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                placeholder="최소 6자 이상"
+                placeholder="영문+숫자 조합 8자 이상"
               />
+              <div className="mt-2 space-y-1">
+                <div className={`text-xs flex items-center gap-1.5 ${passwordValidation.minLength ? 'text-green-600' : 'text-gray-500'}`}>
+                  {passwordValidation.minLength ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    <X className="w-3.5 h-3.5" />
+                  )}
+                  최소 8자 이상
+                </div>
+                <div className={`text-xs flex items-center gap-1.5 ${passwordValidation.hasLetter ? 'text-green-600' : 'text-gray-500'}`}>
+                  {passwordValidation.hasLetter ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    <X className="w-3.5 h-3.5" />
+                  )}
+                  영문자 1개 이상 포함
+                </div>
+                <div className={`text-xs flex items-center gap-1.5 ${passwordValidation.hasNumber ? 'text-green-600' : 'text-gray-500'}`}>
+                  {passwordValidation.hasNumber ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    <X className="w-3.5 h-3.5" />
+                  )}
+                  숫자 1개 이상 포함
+                </div>
+              </div>
             </div>
 
             {/* Confirm Password */}
