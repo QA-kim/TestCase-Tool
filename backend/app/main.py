@@ -40,6 +40,57 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Global rate limiting middleware for all API routes
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    """Apply global rate limiting to protect against abuse"""
+    # Skip rate limiting for health check and root
+    if request.url.path in ["/", "/health"]:
+        return await call_next(request)
+
+    # Apply default rate limit: 100 requests per minute per IP
+    # This protects against basic DoS attacks
+    try:
+        # Check if the request exceeds the rate limit
+        # Note: Individual endpoints may have stricter limits
+        remote_addr = get_remote_address(request)
+        key = f"global:{remote_addr}"
+
+        # Get or create rate limit state
+        if not hasattr(app.state, 'rate_limit_cache'):
+            app.state.rate_limit_cache = {}
+
+        import time
+        from collections import deque
+
+        now = time.time()
+        if key not in app.state.rate_limit_cache:
+            app.state.rate_limit_cache[key] = deque()
+
+        # Clean old requests (older than 1 minute)
+        requests = app.state.rate_limit_cache[key]
+        while requests and requests[0] < now - 60:
+            requests.popleft()
+
+        # Check if limit exceeded
+        if len(requests) >= 100:
+            return Response(
+                content='{"detail":"요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해주세요."}',
+                status_code=429,
+                media_type="application/json",
+                headers={"Retry-After": "60"}
+            )
+
+        # Add current request
+        requests.append(now)
+
+    except Exception as e:
+        # Log error but don't block requests if rate limiting fails
+        print(f"Rate limiting error: {e}")
+
+    return await call_next(request)
+
+
 # Include routers
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(projects.router, prefix=f"{settings.API_V1_STR}/projects", tags=["projects"])
