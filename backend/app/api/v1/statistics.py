@@ -197,9 +197,10 @@ def get_trend_statistics(
     current_user: dict = Depends(get_current_user_firestore)
 ):
     """추세 통계 조회 (시간별 합격률 추이)"""
+    from datetime import timezone
 
-    # 기간 계산
-    now = datetime.utcnow()
+    # 기간 계산 (timezone-aware)
+    now = datetime.now(timezone.utc)
     if period == 'week':
         start_date = now - timedelta(days=7)
         date_format = '%Y-%m-%d'
