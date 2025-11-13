@@ -228,6 +228,10 @@ def get_trend_statistics(
         if not created_at or not isinstance(created_at, datetime):
             continue
 
+        # Ensure created_at is timezone-aware for comparison
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+
         if created_at < start_date:
             continue
 
