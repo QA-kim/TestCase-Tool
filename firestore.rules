@@ -1,0 +1,143 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasRole(role) {
+      return isAuthenticated() && getUserData().role == role;
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function isQAManager() {
+      return hasRole('qa_manager');
+    }
+
+    function isQAEngineer() {
+      return hasRole('qa_engineer');
+    }
+
+    function isDeveloper() {
+      return hasRole('developer');
+    }
+
+    function isViewer() {
+      return hasRole('viewer');
+    }
+
+    function canWrite() {
+      return isAdmin() || isQAManager() || isQAEngineer();
+    }
+
+    function canManage() {
+      return isAdmin() || isQAManager();
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Anyone authenticated can read their own user data
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+
+      // Only admins can list all users
+      allow list: if isAdmin();
+
+      // Users can update their own profile (except role and is_active)
+      allow update: if isAuthenticated() && request.auth.uid == userId
+                    && request.resource.data.role == resource.data.role
+                    && request.resource.data.is_active == resource.data.is_active;
+
+      // Only admins can create users or change roles
+      allow create, delete: if isAdmin();
+
+      // Only admins can update roles or active status
+      allow update: if isAdmin();
+    }
+
+    // Projects collection
+    match /projects/{projectId} {
+      // All authenticated users can read projects
+      allow read: if isAuthenticated();
+
+      // Only admins and QA managers can create projects
+      allow create: if canManage();
+
+      // Only admins and QA managers can update/delete projects
+      allow update, delete: if canManage();
+    }
+
+    // Folders collection
+    match /folders/{folderId} {
+      // All authenticated users can read folders
+      allow read: if isAuthenticated();
+
+      // Only users who can write can create/update/delete folders
+      allow create, update, delete: if canWrite();
+    }
+
+    // Test cases collection
+    match /testcases/{testcaseId} {
+      // All authenticated users can read test cases
+      allow read: if isAuthenticated();
+
+      // Only users who can write can create/update test cases
+      allow create, update: if canWrite();
+
+      // Only admins and QA managers can delete test cases
+      allow delete: if canManage();
+    }
+
+    // Test case history
+    match /testcase_history/{historyId} {
+      // All authenticated users can read history
+      allow read: if isAuthenticated();
+
+      // Only users who can write can create history entries
+      allow create: if canWrite();
+
+      // History entries cannot be updated or deleted
+      allow update, delete: if false;
+    }
+
+    // Test runs collection
+    match /testruns/{testrunId} {
+      // All authenticated users can read test runs
+      allow read: if isAuthenticated();
+
+      // Only users who can write can create test runs
+      allow create: if canWrite();
+
+      // Only creator or managers can update test runs
+      allow update: if canWrite();
+
+      // Only admins and QA managers can delete test runs
+      allow delete: if canManage();
+    }
+
+    // Test results collection
+    match /testresults/{resultId} {
+      // All authenticated users can read test results
+      allow read: if isAuthenticated();
+
+      // Only users who can write can create/update test results
+      allow create, update: if canWrite();
+
+      // Only admins and QA managers can delete test results
+      allow delete: if canManage();
+    }
+
+    // Deny all other collections by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
