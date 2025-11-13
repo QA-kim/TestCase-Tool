@@ -68,13 +68,18 @@ def get_overall_statistics(
         type_dist[test_type] += 1
 
     # 최근 7일간 활동
+    from datetime import timezone
     recent_activity = defaultdict(int)
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
     for tr in testruns:
         created_at = tr.get('created_at')
-        if created_at and isinstance(created_at, datetime) and created_at >= seven_days_ago:
-            date_key = created_at.strftime('%Y-%m-%d')
-            recent_activity[date_key] += 1
+        if created_at and isinstance(created_at, datetime):
+            # Ensure timezone-aware comparison
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+            if created_at >= seven_days_ago:
+                date_key = created_at.strftime('%Y-%m-%d')
+                recent_activity[date_key] += 1
 
     return OverallStatistics(
         total_projects=total_projects,
