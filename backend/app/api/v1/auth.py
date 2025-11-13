@@ -276,9 +276,9 @@ def find_email(request: Request, find_request: FindEmailRequest):
 
 @router.post("/reset-password-request")
 @limiter.limit("3/10minutes")
-def reset_password_request(http_request: Request, request: ResetPasswordRequest):
+def reset_password_request(request: Request, reset_request: ResetPasswordRequest):
     """임시 비밀번호 생성 및 이메일 발송"""
-    user = users_collection.get_by_field('email', request.email)
+    user = users_collection.get_by_field('email', reset_request.email)
 
     if not user:
         raise HTTPException(
@@ -313,14 +313,14 @@ TMS 팀
     """
 
     send_email(
-        to_email=request.email,
+        to_email=reset_request.email,
         subject="[TMS] 임시 비밀번호 안내",
         body=email_body
     )
 
     return {
-        "message": f"임시 비밀번호가 '{request.email}' 이메일로 전송되었습니다",
-        "email": request.email
+        "message": f"임시 비밀번호가 '{reset_request.email}' 이메일로 전송되었습니다",
+        "email": reset_request.email
     }
 
 
