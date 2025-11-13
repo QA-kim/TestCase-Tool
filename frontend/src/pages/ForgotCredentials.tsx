@@ -43,7 +43,14 @@ export default function ForgotCredentials() {
       const response = await api.post('/auth/reset-password-request', { email })
       setSuccess(response.data.message)
     } catch (err: any) {
-      setError(err.response?.data?.detail || '비밀번호 재설정 요청에 실패했습니다')
+      const errorMessage = err.response?.data?.detail || '비밀번호 재설정 요청에 실패했습니다'
+
+      // Show specific error for email not found (404)
+      if (err.response?.status === 404) {
+        setError('해당 이메일로 등록된 계정을 찾을 수 없습니다.\n입력하신 이메일 주소를 다시 확인해주세요.')
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setLoading(false)
     }
