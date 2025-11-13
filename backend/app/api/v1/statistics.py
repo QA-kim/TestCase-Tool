@@ -285,10 +285,12 @@ def get_dashboard_statistics(
     overall = get_overall_statistics(current_user)
 
     # 최근 프로젝트 (5개)
+    from datetime import timezone
+    min_datetime = datetime.min.replace(tzinfo=timezone.utc)
     projects = projects_collection.list(limit=1000)
     recent_projects = sorted(
         projects,
-        key=lambda x: x.get('updated_at', datetime.min),
+        key=lambda x: x.get('updated_at', min_datetime),
         reverse=True
     )[:5]
 
@@ -296,7 +298,7 @@ def get_dashboard_statistics(
     testcases = testcases_collection.list(limit=1000)
     recent_testcases = sorted(
         testcases,
-        key=lambda x: x.get('updated_at', datetime.min),
+        key=lambda x: x.get('updated_at', min_datetime),
         reverse=True
     )[:5]
 
@@ -304,7 +306,7 @@ def get_dashboard_statistics(
     testruns = testruns_collection.list(limit=1000)
     recent_testruns_data = sorted(
         testruns,
-        key=lambda x: x.get('created_at', datetime.min),
+        key=lambda x: x.get('created_at', min_datetime),
         reverse=True
     )[:5]
 
