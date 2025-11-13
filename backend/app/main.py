@@ -33,7 +33,8 @@ app.add_middleware(
         "http://localhost:5174",
         "https://testcase-e27a4.web.app",
         "https://testcase-e27a4.firebaseapp.com",
-        "https://tms.r-e.kr"
+        "https://tms.r-e.kr",
+        "http://tms.r-e.kr"
     ],
     allow_credentials=True,
     allow_methods=["*"],
