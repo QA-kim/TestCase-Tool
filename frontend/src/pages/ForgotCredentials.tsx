@@ -41,15 +41,16 @@ export default function ForgotCredentials() {
 
     try {
       const response = await api.post('/auth/reset-password-request', { email })
+      // 보안상 성공 메시지만 표시 (계정 존재 여부 노출 방지)
       setSuccess(response.data.message)
+      setEmail('') // Clear email field for security
     } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || '비밀번호 재설정 요청에 실패했습니다'
-
-      // Show specific error for email not found (404)
-      if (err.response?.status === 404) {
-        setError('해당 이메일로 등록된 계정을 찾을 수 없습니다.\n입력하신 이메일 주소를 다시 확인해주세요.')
+      // Rate limit exceeded
+      if (err.response?.status === 429) {
+        setError('요청 횟수 제한을 초과했습니다. 30분 후에 다시 시도해주세요.')
       } else {
-        setError(errorMessage)
+        // Generic error message (보안상 상세 정보 노출 안 함)
+        setError('비밀번호 재설정 요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
       }
     } finally {
       setLoading(false)
