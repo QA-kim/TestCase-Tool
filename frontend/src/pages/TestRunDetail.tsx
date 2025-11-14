@@ -312,19 +312,19 @@ export default function TestRunDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 flex gap-6">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6 flex flex-col lg:flex-row gap-4 md:gap-6">
       {/* Main Content */}
-      <div className={`flex-1 ${selectedHistoryTestCase ? 'max-w-[60%]' : 'max-w-full'} transition-all flex flex-col`}>
+      <div className={`flex-1 ${selectedHistoryTestCase ? 'lg:max-w-[60%]' : 'max-w-full'} transition-all flex flex-col`}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-6 flex-shrink-0">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => navigate('/testruns')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <ArrowLeft className="w-6 h-6 text-gray-700" />
+              <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
             </button>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">
               {testrun?.name}
             </h1>
             {getRunStatusBadge(testrun?.status)}
@@ -332,19 +332,20 @@ export default function TestRunDetail() {
 
           <button
             onClick={generatePDFReport}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm sm:text-base whitespace-nowrap"
           >
-            <FileDown className="w-5 h-5" />
-            PDF 보고서 다운로드
+            <FileDown className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">PDF 보고서 다운로드</span>
+            <span className="sm:hidden">PDF</span>
           </button>
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6 flex-shrink-0">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6 flex-shrink-0">
         {/* Progress Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="text-sm text-gray-500 mb-2">진행률</div>
-          <div className="text-3xl font-bold text-gray-900 mb-3">{progress}%</div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
+          <div className="text-xs md:text-sm text-gray-500 mb-1 md:mb-2">진행률</div>
+          <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 md:mb-3">{progress}%</div>
           <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
             <div
               className="bg-blue-600 h-full rounded-full transition-all duration-300"
@@ -354,9 +355,9 @@ export default function TestRunDetail() {
         </div>
 
         {/* Pass Rate Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="text-sm text-gray-500 mb-2">통과율</div>
-          <div className="text-3xl font-bold text-green-600 mb-3">{passRate}%</div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
+          <div className="text-xs md:text-sm text-gray-500 mb-1 md:mb-2">통과율</div>
+          <div className="text-2xl md:text-3xl font-bold text-green-600 mb-2 md:mb-3">{passRate}%</div>
           <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
             <div
               className="bg-green-600 h-full rounded-full transition-all duration-300"
@@ -366,33 +367,33 @@ export default function TestRunDetail() {
         </div>
 
         {/* Passed Card */}
-        <div className="bg-gradient-to-br from-green-50 to-white rounded-lg shadow-sm border border-green-200 p-6">
-          <div className="text-sm text-gray-500 mb-2">통과</div>
-          <div className="text-3xl font-bold text-green-600">{passedCount}</div>
+        <div className="bg-gradient-to-br from-green-50 to-white rounded-lg shadow-sm border border-green-200 p-4 md:p-6">
+          <div className="text-xs md:text-sm text-gray-500 mb-1 md:mb-2">통과</div>
+          <div className="text-2xl md:text-3xl font-bold text-green-600">{passedCount}</div>
         </div>
 
         {/* Failed Card */}
-        <div className="bg-gradient-to-br from-red-50 to-white rounded-lg shadow-sm border border-red-200 p-6">
-          <div className="text-sm text-gray-500 mb-2">실패</div>
-          <div className="text-3xl font-bold text-red-600">{failedCount}</div>
+        <div className="bg-gradient-to-br from-red-50 to-white rounded-lg shadow-sm border border-red-200 p-4 md:p-6">
+          <div className="text-xs md:text-sm text-gray-500 mb-1 md:mb-2">실패</div>
+          <div className="text-2xl md:text-3xl font-bold text-red-600">{failedCount}</div>
         </div>
 
         {/* Blocked Card */}
-        <div className="bg-gradient-to-br from-orange-50 to-white rounded-lg shadow-sm border border-orange-200 p-6">
-          <div className="text-sm text-gray-500 mb-2">테스트불가</div>
-          <div className="text-3xl font-bold text-orange-600">{blockedCount}</div>
+        <div className="bg-gradient-to-br from-orange-50 to-white rounded-lg shadow-sm border border-orange-200 p-4 md:p-6">
+          <div className="text-xs md:text-sm text-gray-500 mb-1 md:mb-2">테스트불가</div>
+          <div className="text-2xl md:text-3xl font-bold text-orange-600">{blockedCount}</div>
         </div>
 
         {/* Skipped Card */}
-        <div className="bg-gradient-to-br from-yellow-50 to-white rounded-lg shadow-sm border border-yellow-200 p-6">
-          <div className="text-sm text-gray-500 mb-2">스킵</div>
-          <div className="text-3xl font-bold text-yellow-600">{skippedCount}</div>
+        <div className="bg-gradient-to-br from-yellow-50 to-white rounded-lg shadow-sm border border-yellow-200 p-4 md:p-6">
+          <div className="text-xs md:text-sm text-gray-500 mb-1 md:mb-2">스킵</div>
+          <div className="text-2xl md:text-3xl font-bold text-yellow-600">{skippedCount}</div>
         </div>
         </div>
 
         {/* Test Cases Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex-1 flex flex-col min-h-0">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex-shrink-0">테스트 케이스 목록 ({testRunTestCases.length}개)</h2>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6 flex-1 flex flex-col min-h-0">
+          <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-3 md:mb-4 flex-shrink-0">테스트 케이스 목록 ({testRunTestCases.length}개)</h2>
           <div className="overflow-x-auto overflow-y-auto flex-1">
             <table className="w-full">
               <thead>
