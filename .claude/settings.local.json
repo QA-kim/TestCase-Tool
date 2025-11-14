@@ -31,7 +31,13 @@
       "Bash(git push:*)",
       "Bash(./venv/Scripts/pip uninstall pydantic-settings -y)",
       "Bash(firebase deploy:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(timeout 3 bash:*)",
+      "Bash(timeout 5 bash:*)",
+      "Bash(for:*)",
+      "Bash(do curl -s -o /dev/null -w \"Request $i: %{http_code}\\n\" http://localhost:8000/health)",
+      "Bash(done)",
+      "Bash(do curl -s -o /dev/null -w \"Request $i: %{http_code}\\n\" http://localhost:8000/api/v1/projects/)"
     ],
     "deny": [],
     "ask": []
