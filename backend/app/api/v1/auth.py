@@ -275,20 +275,41 @@ def find_email(request: Request, find_request: FindEmailRequest):
 
 
 @router.post("/reset-password-request")
-@limiter.limit("3/10minutes")
+@limiter.limit("2/30minutes")  # 30분에 2회로 제한 강화 (이전: 10분에 3회)
 def reset_password_request(request: Request, reset_request: ResetPasswordRequest):
-    """임시 비밀번호 생성 및 이메일 발송"""
-    user = users_collection.get_by_field('email', reset_request.email)
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="해당 이메일로 등록된 계정을 찾을 수 없습니다"
-        )
-
-    # Generate temporary password (8 characters: letters + numbers)
+    """임시 비밀번호 생성 및 이메일 발송 (보안 강화)"""
+    import time
     import random
     import string
+
+    # 타이밍 공격 방지를 위한 기본 지연 (1-2초)
+    time.sleep(random.uniform(1.0, 2.0))
+
+    user = users_collection.get_by_field('email', reset_request.email)
+
+    # 보안: 이메일 존재 여부와 관계없이 동일한 응답 메시지 반환
+    # 이메일이 없어도 공격자가 알 수 없도록 함
+    response_message = "요청하신 이메일 주소로 비밀번호 재설정 안내가 전송되었습니다. 이메일을 확인해주세요."
+
+    if not user:
+        # 이메일이 없어도 동일한 메시지 반환 (계정 존재 여부 숨김)
+        logger.warning(f"Password reset attempted for non-existent email: {reset_request.email}")
+        return {"message": response_message}
+
+    # 최근 비밀번호 재설정 요청 확인 (5분 이내 중복 요청 차단)
+    last_reset = user.get('password_reset_at')
+    if last_reset:
+        if isinstance(last_reset, str):
+            from dateutil import parser
+            last_reset = parser.parse(last_reset)
+
+        time_since_reset = datetime.utcnow() - last_reset.replace(tzinfo=None)
+        if time_since_reset.total_seconds() < 300:  # 5분
+            # 너무 자주 요청하면 경고 로그만 남기고 동일한 메시지 반환
+            logger.warning(f"Frequent password reset attempts detected for: {reset_request.email}")
+            return {"message": response_message}
+
+    # Generate temporary password (8 characters: letters + numbers)
     temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
 
     # Update user with temporary password and flag
@@ -308,20 +329,25 @@ TMS 임시 비밀번호를 안내드립니다.
 
 로그인 후 반드시 비밀번호를 변경해주세요.
 
+보안을 위해 이 이메일은 요청 후 5분 이내에만 유효합니다.
+요청하지 않으셨다면 즉시 관리자에게 문의해주세요.
+
 감사합니다.
 TMS 팀
     """
 
-    send_email(
-        to_email=reset_request.email,
-        subject="[TMS] 임시 비밀번호 안내",
-        body=email_body
-    )
+    try:
+        send_email(
+            to_email=reset_request.email,
+            subject="[TMS] 임시 비밀번호 안내",
+            body=email_body
+        )
+        logger.info(f"Password reset email sent to: {reset_request.email}")
+    except Exception as e:
+        logger.error(f"Failed to send password reset email to {reset_request.email}: {str(e)}")
+        # 이메일 발송 실패해도 같은 메시지 반환 (정보 노출 방지)
 
-    return {
-        "message": f"임시 비밀번호가 '{reset_request.email}' 이메일로 전송되었습니다",
-        "email": reset_request.email
-    }
+    return {"message": response_message}
 
 
 @router.post("/change-password")
