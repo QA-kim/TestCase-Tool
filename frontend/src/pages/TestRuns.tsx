@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Plus, Edit2, Trash2, X, Search, Filter, Download } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Search, Filter } from 'lucide-react'
 import api from '../lib/axios'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -184,29 +184,6 @@ export default function TestRuns() {
     return Array.from(envSet) as string[]
   }, [testruns])
 
-  // Export to CSV
-  const handleExportCSV = async () => {
-    try {
-      const params: any = {}
-      if (filterProject) params.project_id = filterProject
-
-      const response = await api.get('/exports/testruns/csv', {
-        params,
-        responseType: 'blob',
-      })
-
-      const url = window.URL.createObjectURL(new Blob([response.data]))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `testruns_${new Date().toISOString().split('T')[0]}.csv`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-    } catch (error) {
-      console.error('Failed to export CSV:', error)
-      alert('CSV 내보내기에 실패했습니다.')
-    }
-  }
 
   // Toggle test case selection
   const handleTestCaseToggle = (testcaseId: string) => {
@@ -228,34 +205,25 @@ export default function TestRuns() {
             전체 {testruns?.length || 0}개 중 {filteredTestruns?.length || 0}개 표시
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            <span className="font-medium">CSV 내보내기</span>
-          </button>
-          <button
-            onClick={() => {
-              // Reset form and set first project as default
-              setFormData({
-                name: '',
-                description: '',
-                status: 'planned',
-                environment: '',
-                milestone: '',
-                project_id: projects?.[0]?.id || '',
-                test_case_ids: [],
-              })
-              setOpen(true)
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="font-medium">새 테스트 실행</span>
-          </button>
-        </div>
+        <button
+          onClick={() => {
+            // Reset form and set first project as default
+            setFormData({
+              name: '',
+              description: '',
+              status: 'planned',
+              environment: '',
+              milestone: '',
+              project_id: projects?.[0]?.id || '',
+              test_case_ids: [],
+            })
+            setOpen(true)
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          <span className="font-medium">새 테스트 실행</span>
+        </button>
       </div>
 
       {/* Search and Filters */}

@@ -8,7 +8,6 @@ import {
   CheckCircle,
   TrendingUp,
   Calendar,
-  Download,
   AlertCircle,
 } from 'lucide-react'
 import api from '../lib/axios'
@@ -82,23 +81,6 @@ export default function DashboardEnhanced() {
   const recentTestruns = dashboardStats?.recent_testruns || []
   const topFailedTestcases = dashboardStats?.top_failed_testcases || []
 
-  const handleExportCSV = async () => {
-    try {
-      const response = await api.get('/exports/statistics/csv', {
-        responseType: 'blob',
-      })
-      const url = window.URL.createObjectURL(new Blob([response.data]))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `statistics_${new Date().toISOString().split('T')[0]}.csv`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-    } catch (error) {
-      console.error('Failed to export CSV:', error)
-      alert('CSV 내보내기에 실패했습니다.')
-    }
-  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -145,22 +127,6 @@ export default function DashboardEnhanced() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">대시보드</h1>
           <p className="text-gray-600">프로젝트 현황 및 테스트 통계를 확인하세요</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleExportCSV}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            CSV 내보내기
-          </button>
-          <button
-            onClick={() => navigate('/reports')}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            <FileText className="w-4 h-4" />
-            상세 보고서
-          </button>
         </div>
       </div>
 
