@@ -22,7 +22,23 @@ export default function Layout() {
   const { user, logout: authLogout } = useAuth()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
+
+  // 화면 크기에 따라 sidebar 자동 조절
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setSidebarOpen(false)
+      } else {
+        setSidebarOpen(true)
+      }
+    }
+
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   useEffect(() => {
     if (user?.is_temp_password) {
@@ -52,11 +68,22 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside
         className={`${
           sidebarOpen ? 'w-64' : 'w-20'
-        } bg-white border-r border-gray-200 transition-all duration-300 flex flex-col`}
+        } bg-white border-r border-gray-200 transition-all duration-300 flex flex-col
+        md:relative fixed inset-y-0 left-0 z-50
+        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        `}
       >
         {/* Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
@@ -86,6 +113,11 @@ export default function Layout() {
                 <li key={item.text}>
                   <Link
                     to={item.path}
+                    onClick={() => {
+                      if (window.innerWidth < 768) {
+                        setMobileMenuOpen(false)
+                      }
+                    }}
                     className={`
                       flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
                       ${
@@ -119,9 +151,16 @@ export default function Layout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-4">
-            <h1 className="text-lg font-semibold text-gray-900">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <h1 className="text-base md:text-lg font-semibold text-gray-900">
               {menuItems.find(item => isActive(item.path))?.text || 'TMS'}
             </h1>
           </div>
@@ -188,7 +227,7 @@ export default function Layout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <Outlet />
         </main>
       </div>
