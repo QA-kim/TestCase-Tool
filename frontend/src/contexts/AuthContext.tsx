@@ -8,6 +8,7 @@ interface User {
   full_name?: string
   role: string
   is_temp_password?: boolean
+  created_at?: string
 }
 
 interface AuthContextType {
