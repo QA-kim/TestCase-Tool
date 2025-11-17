@@ -9,8 +9,10 @@ export default function MyAccount() {
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [formData, setFormData] = useState({
     full_name: user?.full_name || '',
-    email: user?.email || '',
+    role: user?.role || 'viewer',
   })
+
+  const isAdmin = user?.role === 'admin'
 
   const handleSave = () => {
     // TODO: API 호출하여 사용자 정보 업데이트
@@ -21,7 +23,7 @@ export default function MyAccount() {
   const handleCancel = () => {
     setFormData({
       full_name: user?.full_name || '',
-      email: user?.email || '',
+      role: user?.role || 'viewer',
     })
     setEditMode(false)
   }
@@ -104,23 +106,14 @@ export default function MyAccount() {
             )}
           </div>
 
-          {/* Email */}
+          {/* Email (Read-only) */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <Mail className="w-4 h-4" />
               이메일
             </label>
-            {editMode ? (
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="이메일을 입력하세요"
-              />
-            ) : (
-              <p className="text-gray-900 px-3 py-2">{user?.email}</p>
-            )}
+            <p className="text-gray-500 px-3 py-2 bg-gray-50 rounded-lg">{user?.email}</p>
+            <p className="text-xs text-gray-500 mt-1 ml-3">이메일은 변경할 수 없습니다</p>
           </div>
 
           {/* Username (Read-only) */}
@@ -133,16 +126,34 @@ export default function MyAccount() {
             <p className="text-xs text-gray-500 mt-1 ml-3">사용자명은 변경할 수 없습니다</p>
           </div>
 
-          {/* Role (Read-only) */}
+          {/* Role (Admin can edit) */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <Shield className="w-4 h-4" />
               역할
             </label>
-            <p className="text-gray-500 px-3 py-2 bg-gray-50 rounded-lg">
-              {getRoleLabel(user?.role || 'viewer')}
-            </p>
-            <p className="text-xs text-gray-500 mt-1 ml-3">역할은 관리자만 변경할 수 있습니다</p>
+            {editMode && isAdmin ? (
+              <select
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="admin">관리자</option>
+                <option value="qa_manager">QA 매니저</option>
+                <option value="qa_engineer">QA 엔지니어</option>
+                <option value="developer">개발자</option>
+                <option value="viewer">뷰어</option>
+              </select>
+            ) : (
+              <>
+                <p className="text-gray-500 px-3 py-2 bg-gray-50 rounded-lg">
+                  {getRoleLabel(user?.role || 'viewer')}
+                </p>
+                {!isAdmin && (
+                  <p className="text-xs text-gray-500 mt-1 ml-3">역할은 관리자만 변경할 수 있습니다</p>
+                )}
+              </>
+            )}
           </div>
 
           {/* Created At */}
