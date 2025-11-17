@@ -193,20 +193,22 @@ export default function Layout() {
                         </span>
                       </div>
                     </div>
-                    <button
+                    <Link
+                      to="/account"
                       onClick={() => setUserMenuOpen(false)}
                       className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
                       <User className="w-4 h-4" />
                       내 계정
-                    </button>
-                    <button
+                    </Link>
+                    <Link
+                      to="/settings"
                       onClick={() => setUserMenuOpen(false)}
                       className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
                       <Settings className="w-4 h-4" />
                       설정
-                    </button>
+                    </Link>
                     <div className="border-t border-gray-100 my-1" />
                     <button
                       onClick={() => {
