@@ -90,9 +90,6 @@ export default function MyAccount() {
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
       admin: '관리자',
-      qa_manager: 'QA 매니저',
-      qa_engineer: 'QA 엔지니어',
-      developer: '개발자',
       viewer: '뷰어',
     }
     return labels[role] || role
@@ -101,9 +98,6 @@ export default function MyAccount() {
   const getRoleBadgeColor = (role: string) => {
     const colors: Record<string, string> = {
       admin: 'bg-red-100 text-red-700 border-red-200',
-      qa_manager: 'bg-purple-100 text-purple-700 border-purple-200',
-      qa_engineer: 'bg-blue-100 text-blue-700 border-blue-200',
-      developer: 'bg-green-100 text-green-700 border-green-200',
       viewer: 'bg-gray-100 text-gray-700 border-gray-200',
     }
     return colors[role] || colors.viewer
@@ -226,9 +220,6 @@ export default function MyAccount() {
                             className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
                           >
                             <option value="admin">관리자</option>
-                            <option value="qa_manager">QA 매니저</option>
-                            <option value="qa_engineer">QA 엔지니어</option>
-                            <option value="developer">개발자</option>
                             <option value="viewer">뷰어</option>
                           </select>
                         ) : (

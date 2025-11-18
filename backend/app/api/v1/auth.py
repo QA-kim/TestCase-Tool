@@ -408,7 +408,7 @@ class UpdateUserRoleRequest(BaseModel):
 
     @validator('role')
     def validate_role(cls, v):
-        valid_roles = ['admin', 'qa_manager', 'qa_engineer', 'developer', 'viewer']
+        valid_roles = ['admin', 'viewer']
         if v not in valid_roles:
             raise ValueError(f"역할은 {', '.join(valid_roles)} 중 하나여야 합니다")
         return v
