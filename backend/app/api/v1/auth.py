@@ -371,3 +371,92 @@ def change_password(
     })
 
     return {"message": "비밀번호가 성공적으로 변경되었습니다"}
+
+
+@router.get("/users")
+def get_all_users(current_user: dict = Depends(get_current_user_firestore)):
+    """모든 사용자 조회 (관리자만)"""
+    # Check if user is admin
+    if current_user.get('role') != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="관리자만 사용자 목록을 조회할 수 있습니다"
+        )
+
+    # Get all users
+    users = users_collection.get_all()
+
+    # Remove sensitive information
+    safe_users = []
+    for user in users:
+        safe_user = {
+            'id': user.get('id'),
+            'email': user.get('email'),
+            'username': user.get('username'),
+            'full_name': user.get('full_name'),
+            'role': user.get('role'),
+            'created_at': user.get('created_at'),
+            'is_temp_password': user.get('is_temp_password', False),
+        }
+        safe_users.append(safe_user)
+
+    return safe_users
+
+
+class UpdateUserRoleRequest(BaseModel):
+    role: str = Field(..., description="New role for the user")
+
+    @validator('role')
+    def validate_role(cls, v):
+        valid_roles = ['admin', 'qa_manager', 'qa_engineer', 'developer', 'viewer']
+        if v not in valid_roles:
+            raise ValueError(f"역할은 {', '.join(valid_roles)} 중 하나여야 합니다")
+        return v
+
+
+@router.put("/users/{user_id}/role")
+def update_user_role(
+    user_id: str,
+    request: UpdateUserRoleRequest,
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """사용자 역할 변경 (관리자만)"""
+    # Check if user is admin
+    if current_user.get('role') != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="관리자만 사용자 역할을 변경할 수 있습니다"
+        )
+
+    # Get target user
+    target_user = users_collection.get(user_id)
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="사용자를 찾을 수 없습니다"
+        )
+
+    # Prevent self-demotion from admin
+    if current_user.get('id') == user_id and current_user.get('role') == 'admin' and request.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="자신의 관리자 권한은 해제할 수 없습니다"
+        )
+
+    # Update user role
+    users_collection.update(user_id, {
+        'role': request.role,
+        'updated_at': datetime.utcnow()
+    })
+
+    # Get updated user
+    updated_user = users_collection.get(user_id)
+
+    return {
+        'id': updated_user.get('id'),
+        'email': updated_user.get('email'),
+        'username': updated_user.get('username'),
+        'full_name': updated_user.get('full_name'),
+        'role': updated_user.get('role'),
+        'message': f"사용자 역할이 {request.role}로 변경되었습니다"
+    }
