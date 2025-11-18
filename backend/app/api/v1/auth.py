@@ -384,7 +384,7 @@ def get_all_users(current_user: dict = Depends(get_current_user_firestore)):
         )
 
     # Get all users
-    users = users_collection.get_all()
+    users = users_collection.list(limit=1000)
 
     # Remove sensitive information
     safe_users = []
