@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 from pydantic import BaseModel, EmailStr, Field, validator
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -162,8 +162,14 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
                     locked_until = datetime.fromisoformat(locked_until.replace('Z', '+00:00'))
 
                 # Check if lock is still active
-                if hasattr(locked_until, 'timestamp') and datetime.utcnow() < locked_until:
-                    remaining_minutes = max(1, int((locked_until - datetime.utcnow()).total_seconds() / 60))
+                # Use timezone-aware datetime for comparison
+                current_time = datetime.now(timezone.utc)
+                # Convert locked_until to naive UTC if it's timezone-aware
+                locked_until_naive = locked_until.replace(tzinfo=None) if hasattr(locked_until, 'tzinfo') and locked_until.tzinfo else locked_until
+                current_time_naive = current_time.replace(tzinfo=None)
+
+                if current_time_naive < locked_until_naive:
+                    remaining_minutes = max(1, int((locked_until_naive - current_time_naive).total_seconds() / 60))
                     locked_time_str = locked_until.strftime("%Y-%m-%d %H:%M:%S UTC")
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
@@ -208,7 +214,8 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
         # Lock account after 5 failed attempts
         if failed_attempts >= 5:
             lock_duration_minutes = 30  # Lock for 30 minutes
-            locked_until = datetime.utcnow() + timedelta(minutes=lock_duration_minutes)
+            # Use timezone-aware datetime and convert to naive for storage
+            locked_until = (datetime.now(timezone.utc) + timedelta(minutes=lock_duration_minutes)).replace(tzinfo=None)
             update_data.update({
                 'is_locked': True,
                 'locked_until': locked_until
