@@ -73,15 +73,11 @@ export default function TestCases() {
     return response.data
   })
 
-  // Fetch folders for selected project
+  // Fetch all folders (will be filtered per project when displaying)
   const { data: folders } = useQuery(
-    ['folders', selectedProjectId],
+    ['folders'],
     async () => {
-      if (!selectedProjectId) return []
-      return await foldersApi.list(String(selectedProjectId))
-    },
-    {
-      enabled: !!selectedProjectId,
+      return await foldersApi.list()
     }
   )
 
@@ -514,6 +510,13 @@ export default function TestCases() {
     return buildFolderTree(folders)
   }, [folders])
 
+  // Get folder tree for a specific project
+  const getFolderTreeForProject = (projectId: string) => {
+    if (!folders) return []
+    const projectFolders = folders.filter((f: FolderType) => f.project_id === projectId)
+    return buildFolderTree(projectFolders)
+  }
+
   const getTestCaseCountForFolder = (folderId: string): number => {
     if (!testcases) return 0
     return testcases.filter((tc: any) => tc.folder_id === folderId).length
@@ -755,6 +758,7 @@ export default function TestCases() {
                     {isAdmin && (
                       <button
                         onClick={() => {
+                          setSelectedProjectId(project.id)
                           setFolderFormData({ name: '', description: '', parent_id: undefined })
                           setOpenFolderModal(true)
                         }}
@@ -764,7 +768,7 @@ export default function TestCases() {
                         <span>폴더 추가</span>
                       </button>
                     )}
-                    {folderTree.map((folder) => (
+                    {getFolderTreeForProject(project.id).map((folder) => (
                       <FolderTreeItem key={folder.id} folder={folder} />
                     ))}
                   </div>

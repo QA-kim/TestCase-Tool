@@ -115,7 +115,7 @@ export default function MyAccount() {
             {isAdmin ? '모든 사용자 계정을 관리하세요' : '계정 정보를 확인하고 관리하세요'}
           </p>
         </div>
-        {!editMode && !isAdmin && (
+        {!editMode && !isAdmin && user?.role !== 'viewer' && (
           <button
             onClick={() => setEditMode(true)}
             className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
