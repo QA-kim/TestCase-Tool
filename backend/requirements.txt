@@ -23,13 +23,5 @@ openpyxl==3.1.5
 # Email
 sib-api-v3-sdk==7.6.0
 
-# Security
+# Security & Rate Limiting
 slowapi==0.1.9
-
-# Testing
-pytest==7.4.3
-pytest-asyncio==0.21.1
-httpx==0.25.1
-
-# Not needed for Firestore but imported somewhere
-sqlalchemy==2.0.36
