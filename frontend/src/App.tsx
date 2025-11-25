@@ -15,6 +15,7 @@ import MyAccount from './pages/MyAccount'
 import Settings from './pages/Settings'
 import ErrorModal from './components/ErrorModal'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { ToastProvider } from './contexts/ToastContext'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
@@ -47,37 +48,39 @@ function App() {
 
   return (
     <AuthProvider>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot" element={<ForgotCredentials />} />
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <Layout />
-            </PrivateRoute>
-          }
-        >
-          <Route index element={<DashboardEnhanced />} />
-          <Route path="projects" element={<Projects />} />
-          <Route path="projects/:id" element={<ProjectDetail />} />
-          <Route path="testcases" element={<TestCases />} />
-          <Route path="testcases/:id" element={<TestCaseDetail />} />
-          <Route path="testruns" element={<TestRuns />} />
-          <Route path="testruns/:id" element={<TestRunDetail />} />
-          <Route path="account" element={<MyAccount />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-      </Routes>
+      <ToastProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot" element={<ForgotCredentials />} />
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <Layout />
+              </PrivateRoute>
+            }
+          >
+            <Route index element={<DashboardEnhanced />} />
+            <Route path="projects" element={<Projects />} />
+            <Route path="projects/:id" element={<ProjectDetail />} />
+            <Route path="testcases" element={<TestCases />} />
+            <Route path="testcases/:id" element={<TestCaseDetail />} />
+            <Route path="testruns" element={<TestRuns />} />
+            <Route path="testruns/:id" element={<TestRunDetail />} />
+            <Route path="account" element={<MyAccount />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
+        </Routes>
 
-      {/* Global Permission Error Modal */}
-      <ErrorModal
-        isOpen={showPermissionModal}
-        onClose={closePermissionModal}
-        title="권한 없음"
-        message={permissionError}
-      />
+        {/* Global Permission Error Modal */}
+        <ErrorModal
+          isOpen={showPermissionModal}
+          onClose={closePermissionModal}
+          title="권한 없음"
+          message={permissionError}
+        />
+      </ToastProvider>
     </AuthProvider>
   )
 }
