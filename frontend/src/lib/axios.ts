@@ -83,10 +83,13 @@ api.interceptors.response.use(
 
       case 403:
         // Forbidden - show permission error via custom event (for modal)
-        const permissionMsg = error.response?.data?.detail || '권한이 없습니다.'
-        window.dispatchEvent(new CustomEvent('permissionError', {
-          detail: { message: permissionMsg }
-        }))
+        // Skip global handling on auth pages (let page-level error handling take over)
+        if (!isAuthPage) {
+          const permissionMsg = error.response?.data?.detail || '권한이 없습니다.'
+          window.dispatchEvent(new CustomEvent('permissionError', {
+            detail: { message: permissionMsg }
+          }))
+        }
         break
 
       case 400:
