@@ -11,7 +11,8 @@ import {
   Settings,
   Menu,
   X,
-  Shield
+  Shield,
+  Kanban
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import ChangePasswordModal from './ChangePasswordModal'
@@ -58,6 +59,7 @@ export default function Layout() {
     { text: '프로젝트', icon: FolderOpen, path: '/projects' },
     { text: '테스트 케이스', icon: FileText, path: '/testcases' },
     { text: '테스트 실행', icon: Play, path: '/testruns' },
+    { text: '이슈 보드', icon: Kanban, path: '/issues' },
   ]
 
   const isActive = (path: string) => {

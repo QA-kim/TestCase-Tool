@@ -1,0 +1,154 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List
+
+from app.db.firestore import issues_collection, projects_collection, testcases_collection
+from app.core.security import get_current_user_firestore
+from app.schemas.issue import IssueCreate, IssueUpdate, Issue as IssueSchema
+
+router = APIRouter()
+
+
+@router.post("/", response_model=IssueSchema, status_code=status.HTTP_201_CREATED)
+def create_issue(
+    issue_in: IssueCreate,
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """Create a new issue"""
+    # Verify project exists
+    project = projects_collection.get(issue_in.project_id)
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+
+    # Verify testcase exists if provided
+    if issue_in.testcase_id:
+        testcase = testcases_collection.get(issue_in.testcase_id)
+        if not testcase:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Test case not found"
+            )
+
+    issue_data = issue_in.dict()  # Pydantic v1 uses .dict()
+    issue_data['created_by'] = current_user['id']
+    issue = issues_collection.create(issue_data)
+    return issue
+
+
+@router.get("/", response_model=List[IssueSchema])
+def list_issues(
+    project_id: str = None,
+    status_filter: str = None,
+    assigned_to: str = None,
+    skip: int = 0,
+    limit: int = 100,
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """List issues with optional filters"""
+    # Build query
+    if project_id:
+        issues = issues_collection.query('project_id', '==', project_id)
+
+        # Apply additional filters on the results (Firestore doesn't support multiple where clauses easily)
+        if status_filter:
+            issues = [issue for issue in issues if issue.get('status') == status_filter]
+        if assigned_to:
+            issues = [issue for issue in issues if issue.get('assigned_to') == assigned_to]
+    else:
+        issues = issues_collection.list(limit=limit)
+
+    return issues[skip:skip+limit]
+
+
+@router.get("/{issue_id}", response_model=IssueSchema)
+def get_issue(
+    issue_id: str,
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """Get a specific issue"""
+    issue = issues_collection.get(issue_id)
+    if not issue:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Issue not found"
+        )
+    return issue
+
+
+@router.put("/{issue_id}", response_model=IssueSchema)
+def update_issue(
+    issue_id: str,
+    issue_in: IssueUpdate,
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """Update an issue"""
+    issue = issues_collection.get(issue_id)
+    if not issue:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Issue not found"
+        )
+
+    # Verify testcase exists if provided
+    if issue_in.testcase_id:
+        testcase = testcases_collection.get(issue_in.testcase_id)
+        if not testcase:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Test case not found"
+            )
+
+    update_data = issue_in.dict(exclude_unset=True)  # Pydantic v1 uses .dict()
+    issues_collection.update(issue_id, update_data)
+
+    # Return updated issue
+    updated_issue = issues_collection.get(issue_id)
+    return updated_issue
+
+
+@router.patch("/{issue_id}/status", response_model=IssueSchema)
+def update_issue_status(
+    issue_id: str,
+    status: str,
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """Update issue status (for kanban board drag and drop)"""
+    issue = issues_collection.get(issue_id)
+    if not issue:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Issue not found"
+        )
+
+    # Validate status
+    valid_statuses = ['todo', 'in_progress', 'in_review', 'done']
+    if status not in valid_statuses:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
+        )
+
+    issues_collection.update(issue_id, {'status': status})
+
+    # Return updated issue
+    updated_issue = issues_collection.get(issue_id)
+    return updated_issue
+
+
+@router.delete("/{issue_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_issue(
+    issue_id: str,
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """Delete an issue"""
+    issue = issues_collection.get(issue_id)
+    if not issue:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Issue not found"
+        )
+
+    issues_collection.delete(issue_id)
+    return None
