@@ -103,9 +103,24 @@ export default function TestRunDetail() {
 
   const handleCreateIssue = (testcase: any) => {
     setSelectedIssueTestCase(testcase)
+
+    // 수행방법을 포함한 상세 설명 작성
+    const steps = testcase.steps || 'N/A'
+
     setIssueFormData({
       title: `[실패] ${testcase.title}`,
-      description: `테스트 케이스: ${testcase.title}\n\n수행방법:\n${testcase.steps || 'N/A'}\n\n예상결과:\n${testcase.expected_result || 'N/A'}\n\n실패 원인을 분석하고 수정이 필요합니다.`,
+      description: `## 테스트 케이스 정보
+- 제목: ${testcase.title}
+- 우선순위: ${testcase.priority || 'N/A'}
+
+## 수행방법
+${steps}
+
+## 예상결과
+${testcase.expected_result || 'N/A'}
+
+## 실패 원인
+실패 원인을 분석하고 수정이 필요합니다.`,
       priority: 'high',
     })
     setIssueModalOpen(true)
@@ -695,9 +710,8 @@ export default function TestRunDetail() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   >
                     <option value="low">낮음</option>
-                    <option value="medium">보통</option>
+                    <option value="medium">중간</option>
                     <option value="high">높음</option>
-                    <option value="critical">긴급</option>
                   </select>
                 </div>
               </div>
