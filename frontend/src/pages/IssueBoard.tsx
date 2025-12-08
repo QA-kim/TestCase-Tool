@@ -14,9 +14,9 @@ const STATUS_COLUMNS: { id: IssueStatus; label: string; color: string }[] = [
 
 const PRIORITY_CONFIG = {
   low: { label: '낮음', color: 'text-gray-600', bgColor: 'bg-gray-100' },
-  medium: { label: '보통', color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  medium: { label: '중간', color: 'text-blue-600', bgColor: 'bg-blue-100' },
   high: { label: '높음', color: 'text-orange-600', bgColor: 'bg-orange-100' },
-  critical: { label: '긴급', color: 'text-red-600', bgColor: 'bg-red-100' },
+  critical: { label: '긴급', color: 'text-red-600', bgColor: 'bg-red-100' }, // 기존 이슈 호환성
 }
 
 const TYPE_CONFIG = {
@@ -41,6 +41,12 @@ export default function IssueBoard() {
     testcase_id: '',
   })
 
+  // Fetch all projects
+  const { data: projects } = useQuery('projects', async () => {
+    const response = await api.get('/projects/')
+    return response.data
+  })
+
   // Fetch project details
   const { data: project } = useQuery(
     ['project', projectId],
@@ -52,11 +58,10 @@ export default function IssueBoard() {
     { enabled: !!projectId }
   )
 
-  // Fetch issues
+  // Fetch issues (fetch all if no projectId)
   const { data: issues, isLoading } = useQuery(
     ['issues', projectId],
-    () => issuesApi.list(projectId || undefined),
-    { enabled: !!projectId }
+    () => issuesApi.list(projectId || undefined)
   )
 
   // Create mutation
@@ -116,41 +121,48 @@ export default function IssueBoard() {
     return issues?.filter((issue) => issue.status === status) || []
   }
 
-  if (!projectId) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg">프로젝트를 선택해주세요</p>
-          <button
-            onClick={() => navigate('/projects')}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            프로젝트로 이동
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">이슈 보드</h1>
             <p className="text-sm text-gray-500 mt-1">
-              {project?.name || '프로젝트'} · 전체 {issues?.length || 0}개의 이슈
+              전체 {issues?.length || 0}개의 이슈
             </p>
           </div>
           <button
             onClick={() => setOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+            disabled={!projectId}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             새 이슈
           </button>
+        </div>
+
+        {/* Project Selector */}
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-medium text-gray-700">프로젝트:</label>
+          <select
+            value={projectId || ''}
+            onChange={(e) => {
+              if (e.target.value) {
+                navigate(`/issues?projectId=${e.target.value}`)
+              } else {
+                navigate('/issues')
+              }
+            }}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+          >
+            <option value="">전체 프로젝트</option>
+            {projects?.map((proj: any) => (
+              <option key={proj.id} value={proj.id}>
+                {proj.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -259,11 +271,9 @@ export default function IssueBoard() {
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     >
-                      {Object.entries(PRIORITY_CONFIG).map(([value, config]) => (
-                        <option key={value} value={value}>
-                          {config.label}
-                        </option>
-                      ))}
+                      <option value="low">낮음</option>
+                      <option value="medium">중간</option>
+                      <option value="high">높음</option>
                     </select>
                   </div>
 
