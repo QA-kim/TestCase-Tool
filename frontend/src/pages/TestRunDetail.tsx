@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { ArrowLeft, CheckCircle, XCircle, MinusCircle, Ban, Clock, History, User, ChevronDown, FileDown } from 'lucide-react'
+import { ArrowLeft, CheckCircle, XCircle, MinusCircle, Ban, Clock, History, User, ChevronDown, FileDown, AlertCircle, X } from 'lucide-react'
 import api from '../lib/axios'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
+import { issuesApi } from '../services/issues'
 
 export default function TestRunDetail() {
   const { id } = useParams<{ id: string }>()
@@ -12,6 +13,13 @@ export default function TestRunDetail() {
   const queryClient = useQueryClient()
   const [selectedHistoryTestCase, setSelectedHistoryTestCase] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [issueModalOpen, setIssueModalOpen] = useState(false)
+  const [selectedTestCase, setSelectedTestCase] = useState<any>(null)
+  const [issueFormData, setIssueFormData] = useState({
+    title: '',
+    description: '',
+    priority: 'high' as 'low' | 'medium' | 'high' | 'critical',
+  })
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -63,6 +71,17 @@ export default function TestRunDetail() {
     }
   )
 
+  const createIssueMutation = useMutation(
+    (data: any) => issuesApi.create(data),
+    {
+      onSuccess: () => {
+        setIssueModalOpen(false)
+        setIssueFormData({ title: '', description: '', priority: 'high' })
+        alert('이슈가 생성되었습니다!')
+      },
+    }
+  )
+
   const handleStatusClick = (testcaseId: string, status: string) => {
     const existingResult = results?.find((r: any) => r.test_case_id === testcaseId)
 
@@ -80,6 +99,26 @@ export default function TestRunDetail() {
     }
 
     setOpenDropdown(null)
+  }
+
+  const handleCreateIssue = (testcase: any) => {
+    setSelectedTestCase(testcase)
+    setIssueFormData({
+      title: `[실패] ${testcase.title}`,
+      description: `테스트 케이스: ${testcase.title}\n\n수행방법:\n${testcase.steps || 'N/A'}\n\n예상결과:\n${testcase.expected_result || 'N/A'}\n\n실패 원인을 분석하고 수정이 필요합니다.`,
+      priority: 'high',
+    })
+    setIssueModalOpen(true)
+  }
+
+  const handleSubmitIssue = (e: React.FormEvent) => {
+    e.preventDefault()
+    createIssueMutation.mutate({
+      ...issueFormData,
+      project_id: testrun?.project_id,
+      testcase_id: selectedTestCase?.id,
+      issue_type: 'bug',
+    })
   }
 
   const getStatusLabel = (status: string) => {
@@ -398,11 +437,12 @@ export default function TestRunDetail() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-[30%]">제목</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-[25%]">수행방법</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-[25%]">제목</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-[20%]">수행방법</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-[10%]">우선순위</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-[20%]">테스트 결과</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-[15%]">테스트 결과</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-[15%]">히스토리</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-[15%]">액션</th>
                 </tr>
               </thead>
               <tbody>
@@ -509,6 +549,17 @@ export default function TestRunDetail() {
                             </button>
                           )}
                         </td>
+                        <td className="py-4 px-4">
+                          {result?.status === 'failed' && (
+                            <button
+                              onClick={() => handleCreateIssue(testcase)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-100 text-red-700 border border-red-300 hover:bg-red-200 transition-colors"
+                            >
+                              <AlertCircle className="w-3.5 h-3.5" />
+                              이슈 생성
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     )
                   })
@@ -587,6 +638,87 @@ export default function TestRunDetail() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Issue Creation Modal */}
+      {issueModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">테스트 실패 이슈 생성</h2>
+              <button
+                onClick={() => setIssueModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitIssue} className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    제목 *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={issueFormData.title}
+                    onChange={(e) => setIssueFormData({ ...issueFormData, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    설명
+                  </label>
+                  <textarea
+                    value={issueFormData.description}
+                    onChange={(e) => setIssueFormData({ ...issueFormData, description: e.target.value })}
+                    rows={8}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    우선순위 *
+                  </label>
+                  <select
+                    value={issueFormData.priority}
+                    onChange={(e) =>
+                      setIssueFormData({ ...issueFormData, priority: e.target.value as any })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  >
+                    <option value="low">낮음</option>
+                    <option value="medium">보통</option>
+                    <option value="high">높음</option>
+                    <option value="critical">긴급</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setIssueModalOpen(false)}
+                  className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  disabled={createIssueMutation.isLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {createIssueMutation.isLoading ? '생성 중...' : '이슈 생성'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
