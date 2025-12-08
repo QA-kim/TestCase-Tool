@@ -14,7 +14,7 @@ export default function TestRunDetail() {
   const [selectedHistoryTestCase, setSelectedHistoryTestCase] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [issueModalOpen, setIssueModalOpen] = useState(false)
-  const [selectedTestCase, setSelectedTestCase] = useState<any>(null)
+  const [selectedIssueTestCase, setSelectedIssueTestCase] = useState<any>(null)
   const [issueFormData, setIssueFormData] = useState({
     title: '',
     description: '',
@@ -102,7 +102,7 @@ export default function TestRunDetail() {
   }
 
   const handleCreateIssue = (testcase: any) => {
-    setSelectedTestCase(testcase)
+    setSelectedIssueTestCase(testcase)
     setIssueFormData({
       title: `[실패] ${testcase.title}`,
       description: `테스트 케이스: ${testcase.title}\n\n수행방법:\n${testcase.steps || 'N/A'}\n\n예상결과:\n${testcase.expected_result || 'N/A'}\n\n실패 원인을 분석하고 수정이 필요합니다.`,
@@ -116,7 +116,7 @@ export default function TestRunDetail() {
     createIssueMutation.mutate({
       ...issueFormData,
       project_id: testrun?.project_id,
-      testcase_id: selectedTestCase?.id,
+      testcase_id: selectedIssueTestCase?.id,
       issue_type: 'bug',
     })
   }
