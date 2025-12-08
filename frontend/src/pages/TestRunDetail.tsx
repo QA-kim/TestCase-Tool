@@ -104,20 +104,16 @@ export default function TestRunDetail() {
   const handleCreateIssue = (testcase: any) => {
     setSelectedIssueTestCase(testcase)
 
-    // 수행방법을 포함한 상세 설명 작성
-    const steps = testcase.steps || 'N/A'
+    // 수행방법을 내용에 자동으로 포함
+    const steps = testcase.steps || '수행방법이 명시되지 않았습니다.'
 
     setIssueFormData({
-      title: `[실패] ${testcase.title}`,
-      description: `## 테스트 케이스 정보
-- 제목: ${testcase.title}
-- 우선순위: ${testcase.priority || 'N/A'}
-
-## 수행방법
+      title: testcase.title, // 테스트 케이스 제목을 그대로 사용
+      description: `## 수행방법
 ${steps}
 
 ## 예상결과
-${testcase.expected_result || 'N/A'}
+${testcase.expected_result || '예상결과가 명시되지 않았습니다.'}
 
 ## 실패 원인
 실패 원인을 분석하고 수정이 필요합니다.`,
