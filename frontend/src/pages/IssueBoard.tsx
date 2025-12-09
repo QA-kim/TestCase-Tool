@@ -412,6 +412,16 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
     { enabled: !!issue.testcase_id }
   )
 
+  // Fetch creator details
+  const { data: creator } = useQuery(
+    ['user', issue.created_by],
+    async () => {
+      const response = await api.get(`/users/${issue.created_by}`)
+      return response.data
+    },
+    { enabled: !!issue.created_by }
+  )
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -434,7 +444,7 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
           </div>
 
           {/* Metadata */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1">상태</label>
               <div className={`inline-flex items-center px-3 py-1.5 rounded-md ${statusConfig?.color}`}>
@@ -459,11 +469,6 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
                   {typeConfig.label}
                 </span>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">이슈 ID</label>
-              <span className="text-sm text-gray-700 font-mono">{issue.id}</span>
             </div>
           </div>
 
@@ -512,7 +517,11 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
             </div>
             <div className="mt-2">
               <span className="text-gray-500 text-sm">작성자:</span>
-              <span className="ml-2 text-gray-900 text-sm font-mono">{issue.created_by}</span>
+              {creator ? (
+                <span className="ml-2 text-gray-900 text-sm font-medium">{creator.full_name}</span>
+              ) : (
+                <span className="ml-2 text-gray-500 text-sm">로딩 중...</span>
+              )}
             </div>
           </div>
         </div>
