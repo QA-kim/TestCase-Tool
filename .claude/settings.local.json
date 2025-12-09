@@ -37,7 +37,14 @@
       "Bash(for:*)",
       "Bash(do curl -s -o /dev/null -w \"Request $i: %{http_code}\\n\" http://localhost:8000/health)",
       "Bash(done)",
-      "Bash(do curl -s -o /dev/null -w \"Request $i: %{http_code}\\n\" http://localhost:8000/api/v1/projects/)"
+      "Bash(do curl -s -o /dev/null -w \"Request $i: %{http_code}\\n\" http://localhost:8000/api/v1/projects/)",
+      "Bash(source venv/bin/activate)",
+      "Bash(python3 -m uvicorn:*)",
+      "Bash(npx vite)",
+      "Bash(python3 -m pip install:*)",
+      "Bash(npx firebase-tools deploy:*)",
+      "Bash(python3:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []
