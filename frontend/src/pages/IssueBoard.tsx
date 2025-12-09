@@ -401,6 +401,17 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
   const typeConfig = TYPE_CONFIG[issue.issue_type]
   const statusConfig = STATUS_COLUMNS.find(col => col.id === issue.status)
 
+  // Fetch test case details if testcase_id exists
+  const { data: testCase } = useQuery(
+    ['testcase', issue.testcase_id],
+    async () => {
+      if (!issue.testcase_id) return null
+      const response = await api.get(`/testcases/${issue.testcase_id}`)
+      return response.data
+    },
+    { enabled: !!issue.testcase_id }
+  )
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -472,9 +483,13 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
           {issue.testcase_id && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">연결된 테스트 케이스</label>
-              <div className="flex items-center gap-2 text-sm text-blue-600">
-                <FileText className="w-4 h-4" />
-                <span className="font-mono">{issue.testcase_id}</span>
+              <div className="flex items-center gap-2 text-sm">
+                <FileText className="w-4 h-4 text-blue-600" />
+                {testCase ? (
+                  <span className="text-gray-900 font-medium">{testCase.title}</span>
+                ) : (
+                  <span className="text-gray-500">로딩 중...</span>
+                )}
               </div>
             </div>
           )}
