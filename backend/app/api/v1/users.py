@@ -16,6 +16,21 @@ def get_users(current_user: dict = Depends(get_current_user_firestore)):
     return users
 
 
+@router.get("/{user_id}", response_model=UserSchema)
+def get_user(
+    user_id: str,
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """Get a specific user by ID"""
+    user = users_collection.get(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="사용자를 찾을 수 없습니다"
+        )
+    return user
+
+
 @router.post("/{user_id}/unlock")
 def unlock_user_account(
     user_id: str,
