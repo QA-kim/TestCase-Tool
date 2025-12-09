@@ -40,6 +40,7 @@ def create_issue(
 @router.get("/", response_model=List[IssueSchema])
 def list_issues(
     project_id: str = None,
+    testrun_id: str = None,
     status_filter: str = None,
     assigned_to: str = None,
     skip: int = 0,
@@ -52,10 +53,16 @@ def list_issues(
         issues = issues_collection.query('project_id', '==', project_id)
 
         # Apply additional filters on the results (Firestore doesn't support multiple where clauses easily)
+        if testrun_id:
+            issues = [issue for issue in issues if issue.get('testrun_id') == testrun_id]
         if status_filter:
             issues = [issue for issue in issues if issue.get('status') == status_filter]
         if assigned_to:
             issues = [issue for issue in issues if issue.get('assigned_to') == assigned_to]
+    elif testrun_id:
+        # Filter by testrun_id only
+        all_issues = issues_collection.list(limit=1000)
+        issues = [issue for issue in all_issues if issue.get('testrun_id') == testrun_id]
     else:
         issues = issues_collection.list(limit=limit)
 

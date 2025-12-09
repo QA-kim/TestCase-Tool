@@ -31,6 +31,7 @@ class IssueBase(BaseModel):
     priority: IssuePriority = IssuePriority.MEDIUM
     issue_type: IssueType = IssueType.BUG
     testcase_id: Optional[str] = None  # 연관된 테스트 케이스
+    testrun_id: Optional[str] = None  # 연관된 테스트 실행
     assigned_to: Optional[str] = None  # 담당자 user_id
 
     @validator('title')
@@ -60,6 +61,7 @@ class IssueUpdate(BaseModel):
     priority: Optional[IssuePriority] = None
     issue_type: Optional[IssueType] = None
     testcase_id: Optional[str] = None
+    testrun_id: Optional[str] = None
     assigned_to: Optional[str] = None
 
     @validator('title')
