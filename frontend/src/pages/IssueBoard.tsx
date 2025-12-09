@@ -357,6 +357,16 @@ function IssueCard({
   const priorityConfig = PRIORITY_CONFIG[issue.priority]
   const typeConfig = TYPE_CONFIG[issue.issue_type]
 
+  // Fetch creator details
+  const { data: creator } = useQuery(
+    ['user', issue.created_by],
+    async () => {
+      const response = await api.get(`/users/${issue.created_by}`)
+      return response.data
+    },
+    { enabled: !!issue.created_by }
+  )
+
   return (
     <div
       draggable
@@ -378,18 +388,31 @@ function IssueCard({
       </div>
 
       {/* Title */}
-      <h4 className="font-medium text-gray-900 mb-2 line-clamp-2">{issue.title}</h4>
+      <h4 className="font-medium text-gray-900 mb-3 line-clamp-2">{issue.title}</h4>
 
-      {/* Description */}
-      {issue.description && (
-        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{issue.description}</p>
-      )}
+      {/* Metadata */}
+      <div className="space-y-1 text-xs text-gray-500 mb-2">
+        <div className="flex items-center gap-1">
+          <span className="font-medium">작성자:</span>
+          <span>{creator?.full_name || '로딩 중...'}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="font-medium">생성일:</span>
+          <span>{new Date(issue.created_at).toLocaleDateString('ko-KR')}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="font-medium">수정일:</span>
+          <span>{new Date(issue.updated_at).toLocaleDateString('ko-KR')}</span>
+        </div>
+      </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between text-xs text-gray-500">
-        <span>ID: {issue.id.slice(0, 8)}</span>
-        {issue.testcase_id && <span>테스트 케이스 연결됨</span>}
-      </div>
+      {issue.testcase_id && (
+        <div className="text-xs text-blue-600 flex items-center gap-1 pt-2 border-t border-gray-100">
+          <FileText className="w-3 h-3" />
+          <span>테스트 케이스 연결됨</span>
+        </div>
+      )}
     </div>
   )
 }
