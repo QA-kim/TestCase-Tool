@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Plus, X, Bug, Lightbulb, ListTodo, AlertCircle, Circle } from 'lucide-react'
+import { Plus, X, Bug, Lightbulb, ListTodo, AlertCircle, Circle, FileText } from 'lucide-react'
 import { issuesApi, Issue, IssueStatus, IssuePriority, IssueType } from '../services/issues'
 import api from '../lib/axios'
 
@@ -32,6 +32,8 @@ export default function IssueBoard() {
   const queryClient = useQueryClient()
 
   const [open, setOpen] = useState(false)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
+  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
   const [draggedIssue, setDraggedIssue] = useState<Issue | null>(null)
   const [formData, setFormData] = useState({
     title: '',
@@ -121,6 +123,16 @@ export default function IssueBoard() {
     return issues?.filter((issue) => issue.status === status) || []
   }
 
+  const handleIssueClick = (issue: Issue) => {
+    setSelectedIssue(issue)
+    setDetailModalOpen(true)
+  }
+
+  const handleDetailModalClose = () => {
+    setDetailModalOpen(false)
+    setSelectedIssue(null)
+  }
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -200,6 +212,7 @@ export default function IssueBoard() {
                         key={issue.id}
                         issue={issue}
                         onDragStart={() => handleDragStart(issue)}
+                        onClick={() => handleIssueClick(issue)}
                       />
                     ))}
                     {columnIssues.length === 0 && (
@@ -318,12 +331,28 @@ export default function IssueBoard() {
           </div>
         </div>
       )}
+
+      {/* Issue Detail Modal */}
+      {detailModalOpen && selectedIssue && (
+        <IssueDetailModal
+          issue={selectedIssue}
+          onClose={handleDetailModalClose}
+        />
+      )}
     </div>
   )
 }
 
 // Issue Card Component
-function IssueCard({ issue, onDragStart }: { issue: Issue; onDragStart: () => void }) {
+function IssueCard({
+  issue,
+  onDragStart,
+  onClick
+}: {
+  issue: Issue
+  onDragStart: () => void
+  onClick: () => void
+}) {
   const TypeIcon = TYPE_CONFIG[issue.issue_type].icon
   const priorityConfig = PRIORITY_CONFIG[issue.priority]
   const typeConfig = TYPE_CONFIG[issue.issue_type]
@@ -332,7 +361,8 @@ function IssueCard({ issue, onDragStart }: { issue: Issue; onDragStart: () => vo
     <div
       draggable
       onDragStart={onDragStart}
-      className="bg-white border border-gray-200 rounded-lg p-4 cursor-move hover:shadow-md transition-shadow"
+      onClick={onClick}
+      className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
     >
       {/* Type and Priority */}
       <div className="flex items-center justify-between mb-2">
@@ -359,6 +389,128 @@ function IssueCard({ issue, onDragStart }: { issue: Issue; onDragStart: () => vo
       <div className="flex items-center justify-between text-xs text-gray-500">
         <span>ID: {issue.id.slice(0, 8)}</span>
         {issue.testcase_id && <span>테스트 케이스 연결됨</span>}
+      </div>
+    </div>
+  )
+}
+
+// Issue Detail Modal Component
+function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => void }) {
+  const TypeIcon = TYPE_CONFIG[issue.issue_type].icon
+  const priorityConfig = PRIORITY_CONFIG[issue.priority]
+  const typeConfig = TYPE_CONFIG[issue.issue_type]
+  const statusConfig = STATUS_COLUMNS.find(col => col.id === issue.status)
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">이슈 상세</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Title */}
+          <div>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-4">{issue.title}</h3>
+          </div>
+
+          {/* Metadata */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-500 mb-1">상태</label>
+              <div className={`inline-flex items-center px-3 py-1.5 rounded-md ${statusConfig?.color}`}>
+                <span className="text-sm font-medium text-gray-900">{statusConfig?.label}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-500 mb-1">우선순위</label>
+              <div className={`inline-flex items-center px-3 py-1.5 rounded-md ${priorityConfig.bgColor}`}>
+                <span className={`text-sm font-medium ${priorityConfig.color}`}>
+                  {priorityConfig.label}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-500 mb-1">유형</label>
+              <div className="flex items-center gap-2">
+                <TypeIcon className={`w-5 h-5 ${typeConfig.color}`} />
+                <span className={`text-sm font-medium ${typeConfig.color}`}>
+                  {typeConfig.label}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-500 mb-1">이슈 ID</label>
+              <span className="text-sm text-gray-700 font-mono">{issue.id}</span>
+            </div>
+          </div>
+
+          {/* Description */}
+          {issue.description && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">설명</label>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
+                  {issue.description}
+                </pre>
+              </div>
+            </div>
+          )}
+
+          {/* Test Case Link */}
+          {issue.testcase_id && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">연결된 테스트 케이스</label>
+              <div className="flex items-center gap-2 text-sm text-blue-600">
+                <FileText className="w-4 h-4" />
+                <span className="font-mono">{issue.testcase_id}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Timestamps */}
+          <div className="pt-4 border-t border-gray-200">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-500">생성일:</span>
+                <span className="ml-2 text-gray-900">
+                  {new Date(issue.created_at).toLocaleString('ko-KR')}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500">수정일:</span>
+                <span className="ml-2 text-gray-900">
+                  {new Date(issue.updated_at).toLocaleString('ko-KR')}
+                </span>
+              </div>
+            </div>
+            <div className="mt-2">
+              <span className="text-gray-500 text-sm">작성자:</span>
+              <span className="ml-2 text-gray-900 text-sm font-mono">{issue.created_by}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            닫기
+          </button>
+        </div>
       </div>
     </div>
   )
