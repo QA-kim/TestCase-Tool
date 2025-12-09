@@ -28,7 +28,6 @@ const TYPE_CONFIG = {
 export default function IssueBoard() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const projectId = searchParams.get('projectId')
   const testrunId = searchParams.get('testrunId')
   const queryClient = useQueryClient()
 
@@ -44,27 +43,10 @@ export default function IssueBoard() {
     testcase_id: '',
   })
 
-  // Fetch all projects
-  const { data: projects } = useQuery('projects', async () => {
-    const response = await api.get('/projects/')
-    return response.data
-  })
-
-  // Fetch project details
-  const { data: project } = useQuery(
-    ['project', projectId],
-    async () => {
-      if (!projectId) return null
-      const response = await api.get(`/projects/${projectId}`)
-      return response.data
-    },
-    { enabled: !!projectId }
-  )
-
-  // Fetch issues (fetch all if no projectId)
+  // Fetch issues
   const { data: issues, isLoading } = useQuery(
-    ['issues', projectId, testrunId],
-    () => issuesApi.list(projectId || undefined, testrunId || undefined)
+    ['issues', testrunId],
+    () => issuesApi.list(undefined, testrunId || undefined)
   )
 
   // Fetch test runs
@@ -75,10 +57,18 @@ export default function IssueBoard() {
 
   // Create mutation
   const createMutation = useMutation(
-    (data: any) => issuesApi.create({ ...data, project_id: projectId! }),
+    (data: any) => {
+      // Get the test run to extract project_id
+      const testrun = testruns?.find((tr: any) => tr.id === testrunId)
+      return issuesApi.create({
+        ...data,
+        project_id: testrun?.project_id || '',
+        testrun_id: testrunId || undefined
+      })
+    },
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(['issues', projectId])
+        queryClient.invalidateQueries(['issues', testrunId])
         handleClose()
       },
     }
@@ -90,7 +80,7 @@ export default function IssueBoard() {
       issuesApi.updateStatus(issueId, status),
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(['issues', projectId, testrunId])
+        queryClient.invalidateQueries(['issues', testrunId])
       },
     }
   )
@@ -153,7 +143,7 @@ export default function IssueBoard() {
           </div>
           <button
             onClick={() => setOpen(true)}
-            disabled={!projectId}
+            disabled={!testrunId}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
@@ -164,33 +154,11 @@ export default function IssueBoard() {
         {/* Filters */}
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700">프로젝트:</label>
-            <select
-              value={projectId || ''}
-              onChange={(e) => {
-                const params = new URLSearchParams()
-                if (e.target.value) params.set('projectId', e.target.value)
-                if (testrunId) params.set('testrunId', testrunId)
-                navigate(`/issues${params.toString() ? `?${params.toString()}` : ''}`)
-              }}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
-            >
-              <option value="">전체 프로젝트</option>
-              {projects?.map((proj: any) => (
-                <option key={proj.id} value={proj.id}>
-                  {proj.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-gray-700">테스트 실행:</label>
             <select
               value={testrunId || ''}
               onChange={(e) => {
                 const params = new URLSearchParams()
-                if (projectId) params.set('projectId', projectId)
                 if (e.target.value) params.set('testrunId', e.target.value)
                 navigate(`/issues${params.toString() ? `?${params.toString()}` : ''}`)
               }}
