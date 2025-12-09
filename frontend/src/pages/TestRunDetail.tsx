@@ -128,6 +128,7 @@ ${testcase.expected_result || '예상결과가 명시되지 않았습니다.'}
       ...issueFormData,
       project_id: testrun?.project_id,
       testcase_id: selectedIssueTestCase?.id,
+      testrun_id: id, // 테스트 실행 ID 추가
       issue_type: 'bug',
     })
   }

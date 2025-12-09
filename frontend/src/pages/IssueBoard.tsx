@@ -29,6 +29,7 @@ export default function IssueBoard() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const projectId = searchParams.get('projectId')
+  const testrunId = searchParams.get('testrunId')
   const queryClient = useQueryClient()
 
   const [open, setOpen] = useState(false)
@@ -62,9 +63,15 @@ export default function IssueBoard() {
 
   // Fetch issues (fetch all if no projectId)
   const { data: issues, isLoading } = useQuery(
-    ['issues', projectId],
-    () => issuesApi.list(projectId || undefined)
+    ['issues', projectId, testrunId],
+    () => issuesApi.list(projectId || undefined, testrunId || undefined)
   )
+
+  // Fetch test runs
+  const { data: testruns } = useQuery('testruns', async () => {
+    const response = await api.get('/testruns/')
+    return response.data
+  })
 
   // Create mutation
   const createMutation = useMutation(
@@ -83,7 +90,7 @@ export default function IssueBoard() {
       issuesApi.updateStatus(issueId, status),
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(['issues', projectId])
+        queryClient.invalidateQueries(['issues', projectId, testrunId])
       },
     }
   )
@@ -154,27 +161,49 @@ export default function IssueBoard() {
           </button>
         </div>
 
-        {/* Project Selector */}
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-gray-700">프로젝트:</label>
-          <select
-            value={projectId || ''}
-            onChange={(e) => {
-              if (e.target.value) {
-                navigate(`/issues?projectId=${e.target.value}`)
-              } else {
-                navigate('/issues')
-              }
-            }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
-          >
-            <option value="">전체 프로젝트</option>
-            {projects?.map((proj: any) => (
-              <option key={proj.id} value={proj.id}>
-                {proj.name}
-              </option>
-            ))}
-          </select>
+        {/* Filters */}
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700">프로젝트:</label>
+            <select
+              value={projectId || ''}
+              onChange={(e) => {
+                const params = new URLSearchParams()
+                if (e.target.value) params.set('projectId', e.target.value)
+                if (testrunId) params.set('testrunId', testrunId)
+                navigate(`/issues${params.toString() ? `?${params.toString()}` : ''}`)
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+            >
+              <option value="">전체 프로젝트</option>
+              {projects?.map((proj: any) => (
+                <option key={proj.id} value={proj.id}>
+                  {proj.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700">테스트 실행:</label>
+            <select
+              value={testrunId || ''}
+              onChange={(e) => {
+                const params = new URLSearchParams()
+                if (projectId) params.set('projectId', projectId)
+                if (e.target.value) params.set('testrunId', e.target.value)
+                navigate(`/issues${params.toString() ? `?${params.toString()}` : ''}`)
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+            >
+              <option value="">전체 테스트 실행</option>
+              {testruns?.map((testrun: any) => (
+                <option key={testrun.id} value={testrun.id}>
+                  {testrun.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

@@ -13,6 +13,7 @@ export interface Issue {
   issue_type: IssueType
   project_id: string
   testcase_id?: string
+  testrun_id?: string
   assigned_to?: string
   created_by: string
   created_at: string
@@ -27,6 +28,7 @@ export interface IssueCreate {
   issue_type?: IssueType
   project_id: string
   testcase_id?: string
+  testrun_id?: string
   assigned_to?: string
 }
 
@@ -37,14 +39,16 @@ export interface IssueUpdate {
   priority?: IssuePriority
   issue_type?: IssueType
   testcase_id?: string
+  testrun_id?: string
   assigned_to?: string
 }
 
 export const issuesApi = {
   // Get all issues
-  list: async (projectId?: string, statusFilter?: IssueStatus, assignedTo?: string): Promise<Issue[]> => {
+  list: async (projectId?: string, testrunId?: string, statusFilter?: IssueStatus, assignedTo?: string): Promise<Issue[]> => {
     const params: any = {}
     if (projectId) params.project_id = projectId
+    if (testrunId) params.testrun_id = testrunId
     if (statusFilter) params.status_filter = statusFilter
     if (assignedTo) params.assigned_to = assignedTo
     const response = await api.get('/issues', { params })
