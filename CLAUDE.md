@@ -181,7 +181,7 @@ Defined in `backend/app/schemas/user.py`:
 - `backend/app/db/firestore.py` - Firestore helper class with CRUD operations
 - `backend/app/core/security.py` - JWT token handling, password hashing, account lockout logic
 - `backend/app/core/permissions.py` - Role-based permission checks
-- `backend/create_admin.py` - Creates admin user (admin@tcms.com / admin123)
+- `backend/create_admin.py` - Creates admin user (prompts for password or uses ADMIN_PASSWORD env var)
 - `backend/requirements.txt` - Pure Python dependencies only
 - `render.yaml` - Render.com deployment configuration
 
@@ -197,7 +197,11 @@ Defined in `backend/app/schemas/user.py`:
 #### Create Admin User
 ```bash
 cd backend
+# Interactive mode (prompts for password)
 python create_admin.py
+
+# Or use environment variable
+ADMIN_PASSWORD="your_secure_password" python create_admin.py
 ```
 
 #### Local Development
