@@ -131,8 +131,11 @@ cp .env.example .env
 # Firebase Console > Project Settings > Service Accounts > Generate New Private Key
 # 다운로드한 파일을 backend/firebase-service-account.json으로 저장
 
-# 관리자 계정 생성
+# 관리자 계정 생성 (대화형 입력)
 python create_admin.py
+
+# 또는 환경 변수로 비밀번호 전달
+ADMIN_PASSWORD="your_secure_password" python create_admin.py
 
 # 서버 실행
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
