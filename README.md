@@ -442,7 +442,7 @@ issues/                          # 이슈
 
 ## 📝 라이선스
 
-MIT License
+Kimdaeng
 
 ## 👥 기여
 
