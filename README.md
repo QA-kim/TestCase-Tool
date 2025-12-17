@@ -99,7 +99,8 @@ TMS와 유사한 기능을 제공하는 현대적인 테스트 관리 플랫폼�
 - **API 문서**: https://testcase-tool.onrender.com/docs
 
 ### 🔑 테스트 계정
-```
+
+관리자 계정으로 로그인하려면 `backend/create_admin.py` 스크립트를 실행하여 생성된 계정 정보를 사용하세요.
 
 ## 🛠️ 로컬 개발 환경 설정
 

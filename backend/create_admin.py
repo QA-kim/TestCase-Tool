@@ -11,7 +11,7 @@ def create_admin_user():
     """Create initial admin user"""
     admin_email = "admin@tcms.com"
     admin_username = "admin"
-    admin_password = "admin123"
+    admin_password = "admin123!"
 
     # Check if admin already exists
     existing_admin = users_collection.get_by_field('email', admin_email)
