@@ -41,7 +41,7 @@ export default function IssueBoard() {
     priority: 'medium' as IssuePriority,
     issue_type: 'bug' as IssueType,
     testcase_id: '',
-    project_id: '',
+    selected_testrun_id: '',
   })
 
   // Fetch issues
@@ -56,26 +56,25 @@ export default function IssueBoard() {
     return response.data
   })
 
-  // Fetch projects
-  const { data: projects } = useQuery('projects', async () => {
-    const response = await api.get('/projects/')
-    return response.data
-  })
-
   // Create mutation
   const createMutation = useMutation(
     (data: any) => {
-      // Use project_id from form data or get from testrun
-      let projectId = data.project_id
-      if (testrunId && !projectId) {
-        const testrun = testruns?.find((tr: any) => tr.id === testrunId)
-        projectId = testrun?.project_id
+      // Get project_id from selected testrun
+      const selectedTestrunId = data.selected_testrun_id
+      const testrun = testruns?.find((tr: any) => tr.id === selectedTestrunId)
+
+      if (!testrun) {
+        throw new Error('테스트 실행을 선택해주세요')
       }
 
       return issuesApi.create({
-        ...data,
-        project_id: projectId,
-        testrun_id: testrunId || undefined
+        title: data.title,
+        description: data.description,
+        priority: data.priority,
+        issue_type: data.issue_type,
+        testcase_id: data.testcase_id,
+        project_id: testrun.project_id,
+        testrun_id: selectedTestrunId
       })
     },
     {
@@ -105,7 +104,7 @@ export default function IssueBoard() {
       priority: 'medium',
       issue_type: 'bug',
       testcase_id: '',
-      project_id: '',
+      selected_testrun_id: '',
     })
   }
 
@@ -256,18 +255,18 @@ export default function IssueBoard() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    프로젝트 *
+                    테스트 실행 *
                   </label>
                   <select
                     required
-                    value={formData.project_id}
-                    onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
+                    value={formData.selected_testrun_id}
+                    onChange={(e) => setFormData({ ...formData, selected_testrun_id: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   >
-                    <option value="">프로젝트를 선택하세요</option>
-                    {projects?.map((project: any) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
+                    <option value="">테스트 실행을 선택하세요</option>
+                    {testruns?.map((testrun: any) => (
+                      <option key={testrun.id} value={testrun.id}>
+                        {testrun.name}
                       </option>
                     ))}
                   </select>
@@ -447,6 +446,7 @@ function IssueCard({
 
 // Issue Detail Modal Component
 function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => void }) {
+  const navigate = useNavigate()
   const TypeIcon = TYPE_CONFIG[issue.issue_type].icon
   const priorityConfig = PRIORITY_CONFIG[issue.priority]
   const typeConfig = TYPE_CONFIG[issue.issue_type]
@@ -539,14 +539,20 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
           {issue.testcase_id && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">연결된 테스트 케이스</label>
-              <div className="flex items-center gap-2 text-sm">
-                <FileText className="w-4 h-4 text-blue-600" />
-                {testCase ? (
-                  <span className="text-gray-900 font-medium">{testCase.title}</span>
-                ) : (
-                  <span className="text-gray-500">로딩 중...</span>
-                )}
-              </div>
+              {testCase ? (
+                <button
+                  onClick={() => navigate(`/testcases/${issue.testcase_id}`)}
+                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="font-medium">{testCase.title}</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <FileText className="w-4 h-4" />
+                  <span>로딩 중...</span>
+                </div>
+              )}
             </div>
           )}
 
