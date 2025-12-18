@@ -41,6 +41,7 @@ export default function IssueBoard() {
     priority: 'medium' as IssuePriority,
     issue_type: 'bug' as IssueType,
     testcase_id: '',
+    project_id: '',
   })
 
   // Fetch issues
@@ -55,14 +56,25 @@ export default function IssueBoard() {
     return response.data
   })
 
+  // Fetch projects
+  const { data: projects } = useQuery('projects', async () => {
+    const response = await api.get('/projects/')
+    return response.data
+  })
+
   // Create mutation
   const createMutation = useMutation(
     (data: any) => {
-      // Get the test run to extract project_id
-      const testrun = testruns?.find((tr: any) => tr.id === testrunId)
+      // Use project_id from form data or get from testrun
+      let projectId = data.project_id
+      if (testrunId && !projectId) {
+        const testrun = testruns?.find((tr: any) => tr.id === testrunId)
+        projectId = testrun?.project_id
+      }
+
       return issuesApi.create({
         ...data,
-        project_id: testrun?.project_id || '',
+        project_id: projectId,
         testrun_id: testrunId || undefined
       })
     },
@@ -93,6 +105,7 @@ export default function IssueBoard() {
       priority: 'medium',
       issue_type: 'bug',
       testcase_id: '',
+      project_id: '',
     })
   }
 
@@ -143,8 +156,7 @@ export default function IssueBoard() {
           </div>
           <button
             onClick={() => setOpen(true)}
-            disabled={!testrunId}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
           >
             <Plus className="w-4 h-4" />
             새 이슈
@@ -242,6 +254,25 @@ export default function IssueBoard() {
 
             <form onSubmit={handleSubmit} className="p-6">
               <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    프로젝트 *
+                  </label>
+                  <select
+                    required
+                    value={formData.project_id}
+                    onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  >
+                    <option value="">프로젝트를 선택하세요</option>
+                    {projects?.map((project: any) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     제목 *
