@@ -515,13 +515,13 @@ function KanbanView({
 
   return (
     <div className="p-6 h-full">
-      <div className="flex gap-4 h-full overflow-x-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-full">
         {Object.entries(STATUS_CONFIG).map(([status, config]) => {
           const columnIssues = getIssuesByStatus(status as IssueStatus)
           return (
             <div
               key={status}
-              className="w-80 flex-shrink-0 flex flex-col"
+              className="flex flex-col"
               onDragOver={onDragOver}
               onDrop={() => onDrop(status as IssueStatus)}
             >
