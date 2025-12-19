@@ -1,4 +1,6 @@
 import api from '../lib/axios'
+import { storage } from '../lib/firebase'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 export type IssueStatus = 'todo' | 'in_progress' | 'in_review' | 'done'
 export type IssuePriority = 'low' | 'medium' | 'high' | 'critical'
@@ -16,6 +18,7 @@ export interface Issue {
   testrun_id?: string
   assigned_to?: string
   resolution?: string
+  attachments?: string[]
   created_by: string
   created_at: string
   updated_at: string
@@ -32,6 +35,7 @@ export interface IssueCreate {
   testrun_id?: string
   assigned_to?: string
   resolution?: string
+  attachments?: string[]
 }
 
 export interface IssueUpdate {
@@ -44,6 +48,20 @@ export interface IssueUpdate {
   testrun_id?: string
   assigned_to?: string
   resolution?: string
+  attachments?: string[]
+}
+
+// Upload file to Firebase Storage
+export const uploadAttachment = async (file: File, issueId?: string): Promise<string> => {
+  const timestamp = Date.now()
+  const fileName = `${timestamp}_${file.name}`
+  const folder = issueId ? `issues/${issueId}` : `issues/temp`
+  const storageRef = ref(storage, `${folder}/${fileName}`)
+
+  await uploadBytes(storageRef, file)
+  const downloadURL = await getDownloadURL(storageRef)
+
+  return downloadURL
 }
 
 export const issuesApi = {
