@@ -42,7 +42,11 @@ export default function IssueBoard() {
     issue_type: 'bug' as IssueType,
     testcase_id: '',
     selected_testrun_id: '',
+    assigned_to: '',
   })
+  const [resolutionModalOpen, setResolutionModalOpen] = useState(false)
+  const [resolvingIssue, setResolvingIssue] = useState<Issue | null>(null)
+  const [resolution, setResolution] = useState('')
 
   // Fetch issues
   const { data: issues, isLoading } = useQuery(
@@ -53,6 +57,12 @@ export default function IssueBoard() {
   // Fetch test runs
   const { data: testruns } = useQuery('testruns', async () => {
     const response = await api.get('/testruns/')
+    return response.data
+  })
+
+  // Fetch users for assignee selection
+  const { data: users } = useQuery('users', async () => {
+    const response = await api.get('/users/')
     return response.data
   })
 
@@ -74,7 +84,8 @@ export default function IssueBoard() {
         issue_type: data.issue_type,
         testcase_id: data.testcase_id,
         project_id: testrun.project_id,
-        testrun_id: selectedTestrunId
+        testrun_id: selectedTestrunId,
+        assigned_to: data.assigned_to || undefined
       })
     },
     {
@@ -105,6 +116,7 @@ export default function IssueBoard() {
       issue_type: 'bug',
       testcase_id: '',
       selected_testrun_id: '',
+      assigned_to: '',
     })
   }
 
@@ -123,9 +135,32 @@ export default function IssueBoard() {
 
   const handleDrop = (status: IssueStatus) => {
     if (draggedIssue && draggedIssue.status !== status) {
-      updateStatusMutation.mutate({ issueId: draggedIssue.id, status })
+      // Done 상태로 변경 시 해결 방법 입력 모달 표시
+      if (status === 'done') {
+        setResolvingIssue(draggedIssue)
+        setResolutionModalOpen(true)
+        setDraggedIssue(null)
+      } else {
+        updateStatusMutation.mutate({ issueId: draggedIssue.id, status })
+        setDraggedIssue(null)
+      }
+    } else {
+      setDraggedIssue(null)
     }
-    setDraggedIssue(null)
+  }
+
+  const handleResolveIssue = () => {
+    if (!resolvingIssue) return
+
+    issuesApi.update(resolvingIssue.id, {
+      status: 'done',
+      resolution: resolution.trim() || undefined
+    }).then(() => {
+      queryClient.invalidateQueries(['issues', testrunId])
+      setResolutionModalOpen(false)
+      setResolvingIssue(null)
+      setResolution('')
+    })
   }
 
   const getIssuesByStatus = (status: IssueStatus) => {
@@ -336,6 +371,24 @@ export default function IssueBoard() {
                     </select>
                   </div>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    담당자
+                  </label>
+                  <select
+                    value={formData.assigned_to}
+                    onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  >
+                    <option value="">담당자 선택 (선택사항)</option>
+                    {users?.map((user: any) => (
+                      <option key={user.id} value={user.id}>
+                        {user.full_name} ({user.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
@@ -365,6 +418,66 @@ export default function IssueBoard() {
           issue={selectedIssue}
           onClose={handleDetailModalClose}
         />
+      )}
+
+      {/* Resolution Modal */}
+      {resolutionModalOpen && resolvingIssue && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">이슈 해결</h2>
+              <button
+                onClick={() => {
+                  setResolutionModalOpen(false)
+                  setResolvingIssue(null)
+                  setResolution('')
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-4">
+                <h3 className="font-medium text-gray-900 mb-2">{resolvingIssue.title}</h3>
+                <p className="text-sm text-gray-500">이 이슈를 완료 상태로 변경합니다.</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  해결 방법 (선택사항)
+                </label>
+                <textarea
+                  value={resolution}
+                  onChange={(e) => setResolution(e.target.value)}
+                  rows={6}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                  placeholder="이슈를 어떻게 해결했는지 설명해주세요..."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => {
+                  setResolutionModalOpen(false)
+                  setResolvingIssue(null)
+                  setResolution('')
+                }}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleResolveIssue}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                완료로 표시
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -473,6 +586,17 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
     { enabled: !!issue.created_by }
   )
 
+  // Fetch assignee details
+  const { data: assignee } = useQuery(
+    ['user', issue.assigned_to],
+    async () => {
+      if (!issue.assigned_to) return null
+      const response = await api.get(`/users/${issue.assigned_to}`)
+      return response.data
+    },
+    { enabled: !!issue.assigned_to }
+  )
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -535,6 +659,28 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
             </div>
           )}
 
+          {/* Assigned To */}
+          {issue.assigned_to && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">담당자</label>
+              {assignee ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                    <span className="text-sm font-medium text-blue-700">
+                      {assignee.full_name[0]}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{assignee.full_name}</div>
+                    <div className="text-xs text-gray-500">{assignee.email}</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">로딩 중...</div>
+              )}
+            </div>
+          )}
+
           {/* Test Case Link */}
           {issue.testcase_id && (
             <div>
@@ -553,6 +699,18 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
                   <span>로딩 중...</span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Resolution */}
+          {issue.resolution && issue.status === 'done' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">해결 방법</label>
+              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
+                  {issue.resolution}
+                </pre>
+              </div>
             </div>
           )}
 

@@ -15,6 +15,7 @@ export interface Issue {
   testcase_id?: string
   testrun_id?: string
   assigned_to?: string
+  resolution?: string
   created_by: string
   created_at: string
   updated_at: string
@@ -30,6 +31,7 @@ export interface IssueCreate {
   testcase_id?: string
   testrun_id?: string
   assigned_to?: string
+  resolution?: string
 }
 
 export interface IssueUpdate {
@@ -41,6 +43,7 @@ export interface IssueUpdate {
   testcase_id?: string
   testrun_id?: string
   assigned_to?: string
+  resolution?: string
 }
 
 export const issuesApi = {

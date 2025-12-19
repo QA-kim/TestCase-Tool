@@ -12,6 +12,7 @@ import TestCaseDetail from './pages/TestCaseDetail'
 import TestRuns from './pages/TestRuns'
 import TestRunDetail from './pages/TestRunDetail'
 import IssueBoard from './pages/IssueBoard'
+import IssueTracker from './pages/IssueTracker'
 import MyAccount from './pages/MyAccount'
 import Settings from './pages/Settings'
 import ErrorModal from './components/ErrorModal'
@@ -70,6 +71,7 @@ function App() {
             <Route path="testruns" element={<TestRuns />} />
             <Route path="testruns/:id" element={<TestRunDetail />} />
             <Route path="issues" element={<IssueBoard />} />
+            <Route path="issue-tracker" element={<IssueTracker />} />
             <Route path="account" element={<MyAccount />} />
             <Route path="settings" element={<Settings />} />
           </Route>

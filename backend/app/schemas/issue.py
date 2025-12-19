@@ -33,6 +33,7 @@ class IssueBase(BaseModel):
     testcase_id: Optional[str] = None  # 연관된 테스트 케이스
     testrun_id: Optional[str] = None  # 연관된 테스트 실행
     assigned_to: Optional[str] = None  # 담당자 user_id
+    resolution: Optional[str] = Field(None, max_length=5000)  # 해결 방법 (Done 상태일 때)
 
     @validator('title')
     def validate_title(cls, v):
@@ -63,6 +64,7 @@ class IssueUpdate(BaseModel):
     testcase_id: Optional[str] = None
     testrun_id: Optional[str] = None
     assigned_to: Optional[str] = None
+    resolution: Optional[str] = Field(None, max_length=5000)
 
     @validator('title')
     def validate_title(cls, v):

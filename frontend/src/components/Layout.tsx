@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   Shield,
-  Kanban
+  Kanban,
+  ListChecks
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import ChangePasswordModal from './ChangePasswordModal'
@@ -60,6 +61,7 @@ export default function Layout() {
     { text: '테스트 케이스', icon: FileText, path: '/testcases' },
     { text: '테스트 실행', icon: Play, path: '/testruns' },
     { text: '이슈 보드', icon: Kanban, path: '/issues' },
+    { text: '이슈 트래커', icon: ListChecks, path: '/issue-tracker' },
   ]
 
   const isActive = (path: string) => {
