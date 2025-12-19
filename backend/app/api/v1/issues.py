@@ -1,11 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi.responses import FileResponse
 from typing import List
+import os
+import shutil
+from pathlib import Path
 
 from app.db.firestore import issues_collection, projects_collection, testcases_collection
 from app.core.security import get_current_user_firestore
 from app.schemas.issue import IssueCreate, IssueUpdate, Issue as IssueSchema
 
 router = APIRouter()
+
+# Create uploads directory
+UPLOAD_DIR = Path("/tmp/issue_attachments")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @router.post("/", response_model=IssueSchema, status_code=status.HTTP_201_CREATED)
@@ -159,3 +167,59 @@ def delete_issue(
 
     issues_collection.delete(issue_id)
     return None
+
+
+@router.post("/upload")
+async def upload_attachment(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """Upload an attachment file"""
+    # Validate file type (only images)
+    if not file.content_type or not file.content_type.startswith('image/'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only image files are allowed"
+        )
+
+    # Validate file size (max 5MB)
+    file.file.seek(0, 2)  # Seek to end
+    file_size = file.file.tell()  # Get position (file size)
+    file.file.seek(0)  # Reset to beginning
+
+    if file_size > 5 * 1024 * 1024:  # 5MB
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size must be less than 5MB"
+        )
+
+    # Generate unique filename
+    import time
+    timestamp = int(time.time() * 1000)
+    file_extension = os.path.splitext(file.filename)[1] if file.filename else '.jpg'
+    filename = f"{timestamp}_{file.filename}"
+    file_path = UPLOAD_DIR / filename
+
+    # Save file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Return file URL
+    return {"url": f"/api/v1/issues/attachments/{filename}"}
+
+
+@router.get("/attachments/{filename}")
+async def get_attachment(
+    filename: str,
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """Get an attachment file"""
+    file_path = UPLOAD_DIR / filename
+
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found"
+        )
+
+    return FileResponse(file_path)

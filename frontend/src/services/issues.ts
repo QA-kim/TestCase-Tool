@@ -1,6 +1,4 @@
 import api from '../lib/axios'
-import { storage } from '../lib/firebase'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 export type IssueStatus = 'todo' | 'in_progress' | 'in_review' | 'done'
 export type IssuePriority = 'low' | 'medium' | 'high' | 'critical'
@@ -51,17 +49,25 @@ export interface IssueUpdate {
   attachments?: string[]
 }
 
-// Upload file to Firebase Storage
-export const uploadAttachment = async (file: File, issueId?: string): Promise<string> => {
-  const timestamp = Date.now()
-  const fileName = `${timestamp}_${file.name}`
-  const folder = issueId ? `issues/${issueId}` : `issues/temp`
-  const storageRef = ref(storage, `${folder}/${fileName}`)
+// Upload file to backend
+export const uploadAttachment = async (file: File): Promise<string> => {
+  const formData = new FormData()
+  formData.append('file', file)
 
-  await uploadBytes(storageRef, file)
-  const downloadURL = await getDownloadURL(storageRef)
+  const response = await api.post('/issues/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
 
-  return downloadURL
+  // Convert relative URL to absolute URL
+  const relativeUrl = response.data.url
+  const baseURL = import.meta.env.VITE_API_URL || window.location.origin + '/api/v1'
+
+  // Remove /api/v1 from relative URL if it exists
+  const path = relativeUrl.replace('/api/v1', '')
+
+  return `${baseURL}${path}`
 }
 
 export const issuesApi = {
