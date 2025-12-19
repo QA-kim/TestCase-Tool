@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Plus, X, Bug, Lightbulb, ListTodo, AlertCircle, Circle, FileText } from 'lucide-react'
-import { issuesApi, Issue, IssueStatus, IssuePriority, IssueType } from '../services/issues'
+import { Plus, X, Bug, Lightbulb, ListTodo, AlertCircle, Circle, FileText, Upload, Paperclip } from 'lucide-react'
+import { issuesApi, Issue, IssueStatus, IssuePriority, IssueType, uploadAttachment } from '../services/issues'
 import api from '../lib/axios'
 
 const STATUS_COLUMNS: { id: IssueStatus; label: string; color: string }[] = [
@@ -47,6 +47,8 @@ export default function IssueBoard() {
   const [resolutionModalOpen, setResolutionModalOpen] = useState(false)
   const [resolvingIssue, setResolvingIssue] = useState<Issue | null>(null)
   const [resolution, setResolution] = useState('')
+  const [attachments, setAttachments] = useState<File[]>([])
+  const [uploadingFiles, setUploadingFiles] = useState(false)
 
   // Fetch issues
   const { data: issues, isLoading } = useQuery(
@@ -68,13 +70,26 @@ export default function IssueBoard() {
 
   // Create mutation
   const createMutation = useMutation(
-    (data: any) => {
+    async (data: any) => {
       // Get project_id from selected testrun
       const selectedTestrunId = data.selected_testrun_id
       const testrun = testruns?.find((tr: any) => tr.id === selectedTestrunId)
 
       if (!testrun) {
         throw new Error('테스트 실행을 선택해주세요')
+      }
+
+      // Upload attachments if any
+      let attachmentUrls: string[] = []
+      if (attachments.length > 0) {
+        setUploadingFiles(true)
+        try {
+          attachmentUrls = await Promise.all(
+            attachments.map(file => uploadAttachment(file))
+          )
+        } finally {
+          setUploadingFiles(false)
+        }
       }
 
       return issuesApi.create({
@@ -85,7 +100,8 @@ export default function IssueBoard() {
         testcase_id: data.testcase_id,
         project_id: testrun.project_id,
         testrun_id: selectedTestrunId,
-        assigned_to: data.assigned_to || undefined
+        assigned_to: data.assigned_to || undefined,
+        attachments: attachmentUrls.length > 0 ? attachmentUrls : undefined
       })
     },
     {
@@ -118,6 +134,18 @@ export default function IssueBoard() {
       selected_testrun_id: '',
       assigned_to: '',
     })
+    setAttachments([])
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files)
+      setAttachments(prev => [...prev, ...newFiles])
+    }
+  }
+
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -389,6 +417,54 @@ export default function IssueBoard() {
                     ))}
                   </select>
                 </div>
+
+                {/* File Attachments */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    첨부파일 (스크린샷)
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Upload className="w-5 h-5" />
+                        <span className="text-sm">이미지 파일 선택</span>
+                      </div>
+                    </label>
+
+                    {attachments.length > 0 && (
+                      <div className="space-y-2">
+                        {attachments.map((file, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-md border border-gray-200"
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Paperclip className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                              <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                              <span className="text-xs text-gray-500 flex-shrink-0">
+                                ({(file.size / 1024).toFixed(1)} KB)
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAttachment(index)}
+                              className="text-red-500 hover:text-red-700 transition-colors ml-2"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
@@ -401,10 +477,10 @@ export default function IssueBoard() {
                 </button>
                 <button
                   type="submit"
-                  disabled={createMutation.isLoading}
+                  disabled={createMutation.isLoading || uploadingFiles}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
-                  {createMutation.isLoading ? '생성 중...' : '생성'}
+                  {uploadingFiles ? '파일 업로드 중...' : createMutation.isLoading ? '생성 중...' : '생성'}
                 </button>
               </div>
             </form>
@@ -710,6 +786,35 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
                 <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
                   {issue.resolution}
                 </pre>
+              </div>
+            </div>
+          )}
+
+          {/* Attachments */}
+          {issue.attachments && issue.attachments.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">첨부파일</label>
+              <div className="grid grid-cols-2 gap-3">
+                {issue.attachments.map((url, index) => (
+                  <a
+                    key={index}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative group overflow-hidden rounded-lg border border-gray-200 hover:border-blue-400 transition-colors"
+                  >
+                    <img
+                      src={url}
+                      alt={`Attachment ${index + 1}`}
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity flex items-center justify-center">
+                      <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">
+                        크게 보기
+                      </span>
+                    </div>
+                  </a>
+                ))}
               </div>
             </div>
           )}

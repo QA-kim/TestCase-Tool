@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 
@@ -34,6 +34,7 @@ class IssueBase(BaseModel):
     testrun_id: Optional[str] = None  # 연관된 테스트 실행
     assigned_to: Optional[str] = None  # 담당자 user_id
     resolution: Optional[str] = Field(None, max_length=5000)  # 해결 방법 (Done 상태일 때)
+    attachments: Optional[List[str]] = Field(default_factory=list)  # 첨부파일 URL 목록
 
     @validator('title')
     def validate_title(cls, v):
@@ -65,6 +66,7 @@ class IssueUpdate(BaseModel):
     testrun_id: Optional[str] = None
     assigned_to: Optional[str] = None
     resolution: Optional[str] = Field(None, max_length=5000)
+    attachments: Optional[List[str]] = None
 
     @validator('title')
     def validate_title(cls, v):
