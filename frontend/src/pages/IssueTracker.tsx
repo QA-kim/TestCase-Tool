@@ -47,6 +47,7 @@ export default function IssueTracker() {
   // Modal state
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
   const [draggedIssue, setDraggedIssue] = useState<Issue | null>(null)
 
@@ -367,7 +368,14 @@ export default function IssueTracker() {
             <div className="text-gray-500">로딩 중...</div>
           </div>
         ) : viewMode === 'list' ? (
-          <ListView issues={filteredIssues} onEditClick={handleEditClick} />
+          <ListView
+            issues={filteredIssues}
+            onEditClick={handleEditClick}
+            onIssueClick={(issue) => {
+              setSelectedIssue(issue)
+              setDetailModalOpen(true)
+            }}
+          />
         ) : (
           <KanbanView
             issues={filteredIssues}
@@ -412,12 +420,31 @@ export default function IssueTracker() {
           mode="edit"
         />
       )}
+
+      {/* Detail Modal */}
+      {detailModalOpen && selectedIssue && (
+        <IssueDetailModal
+          issue={selectedIssue}
+          onClose={() => {
+            setDetailModalOpen(false)
+            setSelectedIssue(null)
+          }}
+        />
+      )}
     </div>
   )
 }
 
 // List View Component
-function ListView({ issues, onEditClick }: { issues: Issue[]; onEditClick: (issue: Issue) => void }) {
+function ListView({
+  issues,
+  onEditClick,
+  onIssueClick
+}: {
+  issues: Issue[];
+  onEditClick: (issue: Issue) => void;
+  onIssueClick: (issue: Issue) => void;
+}) {
   const navigate = useNavigate()
   const { data: users } = useQuery('users', async () => {
     const response = await api.get('/users/')
@@ -467,7 +494,7 @@ function ListView({ issues, onEditClick }: { issues: Issue[]; onEditClick: (issu
                   <tr key={issue.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => navigate(`/issues/${issue.id}`)}
+                        onClick={() => onIssueClick(issue)}
                         className="flex items-start gap-3 text-left hover:text-blue-600 transition-colors"
                       >
                         <TypeIcon className={`w-5 h-5 mt-0.5 flex-shrink-0 ${TYPE_CONFIG[issue.issue_type].color}`} />
@@ -859,6 +886,231 @@ function IssueFormModal({
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => void }) {
+  const navigate = useNavigate()
+  const TypeIcon = TYPE_CONFIG[issue.issue_type].icon
+  const priorityConfig = PRIORITY_CONFIG[issue.priority]
+  const typeConfig = TYPE_CONFIG[issue.issue_type]
+  const statusConfig = STATUS_CONFIG[issue.status]
+
+  // Fetch test case details if testcase_id exists
+  const { data: testCase } = useQuery(
+    ['testcase', issue.testcase_id],
+    async () => {
+      if (!issue.testcase_id) return null
+      const response = await api.get(`/testcases/${issue.testcase_id}`)
+      return response.data
+    },
+    { enabled: !!issue.testcase_id }
+  )
+
+  // Fetch creator details
+  const { data: creator } = useQuery(
+    ['user', issue.created_by],
+    async () => {
+      const response = await api.get(`/users/${issue.created_by}`)
+      return response.data
+    },
+    { enabled: !!issue.created_by }
+  )
+
+  // Fetch assignee details
+  const { data: assignee } = useQuery(
+    ['user', issue.assigned_to],
+    async () => {
+      if (!issue.assigned_to) return null
+      const response = await api.get(`/users/${issue.assigned_to}`)
+      return response.data
+    },
+    { enabled: !!issue.assigned_to }
+  )
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">이슈 상세</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Title */}
+          <div>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-4">{issue.title}</h3>
+          </div>
+
+          {/* Metadata */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-500 mb-1">상태</label>
+              <div className={`inline-flex items-center px-3 py-1.5 rounded-md ${statusConfig?.color}`}>
+                <span className="text-sm font-medium text-gray-900">{statusConfig?.label}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-500 mb-1">우선순위</label>
+              <div className={`inline-flex items-center px-3 py-1.5 rounded-md ${priorityConfig.bgColor}`}>
+                <span className={`text-sm font-medium ${priorityConfig.color}`}>
+                  {priorityConfig.label}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-500 mb-1">유형</label>
+              <div className="flex items-center gap-2">
+                <TypeIcon className={`w-5 h-5 ${typeConfig.color}`} />
+                <span className={`text-sm font-medium ${typeConfig.color}`}>
+                  {typeConfig.label}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Description */}
+          {issue.description && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">설명</label>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
+                  {issue.description}
+                </pre>
+              </div>
+            </div>
+          )}
+
+          {/* Assigned To */}
+          {issue.assigned_to && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">담당자</label>
+              {assignee ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                    <span className="text-sm font-medium text-blue-700">
+                      {assignee.full_name[0]}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{assignee.full_name}</div>
+                    <div className="text-xs text-gray-500">{assignee.email}</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">로딩 중...</div>
+              )}
+            </div>
+          )}
+
+          {/* Test Case Link */}
+          {issue.testcase_id && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">연결된 테스트 케이스</label>
+              {testCase ? (
+                <button
+                  onClick={() => navigate(`/testcases/${issue.testcase_id}`)}
+                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="font-medium">{testCase.title}</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <FileText className="w-4 h-4" />
+                  <span>로딩 중...</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Resolution */}
+          {issue.resolution && issue.status === 'done' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">해결 방법</label>
+              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
+                  {issue.resolution}
+                </pre>
+              </div>
+            </div>
+          )}
+
+          {/* Attachments */}
+          {issue.attachments && issue.attachments.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">첨부파일</label>
+              <div className="grid grid-cols-2 gap-3">
+                {issue.attachments.map((url, index) => (
+                  <a
+                    key={index}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative group overflow-hidden rounded-lg border border-gray-200 hover:border-blue-400 transition-colors"
+                  >
+                    <img
+                      src={url}
+                      alt={`Attachment ${index + 1}`}
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity flex items-center justify-center">
+                      <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">
+                        크게 보기
+                      </span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Timestamps */}
+          <div className="pt-4 border-t border-gray-200">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-500">생성일:</span>
+                <span className="ml-2 text-gray-900">
+                  {new Date(issue.created_at).toLocaleString('ko-KR')}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500">수정일:</span>
+                <span className="ml-2 text-gray-900">
+                  {new Date(issue.updated_at).toLocaleString('ko-KR')}
+                </span>
+              </div>
+            </div>
+            <div className="mt-2">
+              <span className="text-gray-500 text-sm">작성자:</span>
+              {creator ? (
+                <span className="ml-2 text-gray-900 text-sm font-medium">{creator.full_name}</span>
+              ) : (
+                <span className="ml-2 text-gray-500 text-sm">로딩 중...</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            닫기
+          </button>
+        </div>
       </div>
     </div>
   )
