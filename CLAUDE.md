@@ -126,11 +126,15 @@ Defined in `backend/app/schemas/user.py`:
   - Test case/test run linking
   - Assignee management
   - Filter by test run
+  - **File attachments** (image screenshots up to 5MB)
+  - Backend file storage (/tmp directory on Render.com)
+  - Issue detail modal in list view
+  - Attachment preview with image grid
 
 ### 📅 Phase 3 - Planned
 - Jira/GitHub issue integration
 - Email notifications
-- File attachments
+- Persistent file storage (cloud storage solution)
 - Test automation framework integration
 
 ### 📅 Phase 4 - Future
@@ -174,6 +178,14 @@ Defined in `backend/app/schemas/user.py`:
    - Frontend: Manual deploy via `npm run build && npx firebase-tools deploy --only hosting`
    - **Important**: Always deploy frontend after code changes per user request
 
+7. **File Storage: Backend /tmp Directory (not Firebase Storage)**
+   - Uses backend file upload via multipart/form-data
+   - Files stored in `/tmp/issue_attachments` on Render.com
+   - Image files only (validated by content-type)
+   - Max file size: 5MB
+   - **Trade-off**: Files are ephemeral (lost on server restart due to free tier)
+   - Avoided Firebase Storage to maintain $0/month cost (requires Blaze plan)
+
 ### Important Files
 
 **Backend:**
@@ -181,7 +193,7 @@ Defined in `backend/app/schemas/user.py`:
 - `backend/app/db/firestore.py` - Firestore helper class with CRUD operations
 - `backend/app/core/security.py` - JWT token handling, password hashing, account lockout logic
 - `backend/app/core/permissions.py` - Role-based permission checks
-- `backend/create_admin.py` - Creates admin user (prompts for password or uses ADMIN_PASSWORD env var)
+- `backend/create_admin.py` - Creates admin user (interactive password prompt)
 - `backend/requirements.txt` - Pure Python dependencies only
 - `render.yaml` - Render.com deployment configuration
 
@@ -199,9 +211,6 @@ Defined in `backend/app/schemas/user.py`:
 cd backend
 # Interactive mode (prompts for password)
 python create_admin.py
-
-# Or use environment variable
-ADMIN_PASSWORD="your_secure_password" python create_admin.py
 ```
 
 #### Local Development
@@ -290,11 +299,41 @@ Required environment variables:
 **Issues (`/api/v1/issues`)**
 - CRUD for issues
 - `PATCH /{issue_id}/status` - Update status (for kanban drag-drop)
+- `POST /upload` - Upload attachment file (images only, max 5MB)
+- `GET /attachments/{filename}` - Retrieve uploaded attachment
 - Query params: `project_id`, `testrun_id`, `status_filter`, `assigned_to`
 
 **Statistics (`/api/v1/statistics`)**
 - `GET /dashboard` - Dashboard stats (30 days)
 - `GET /trends` - Pass rate trends (monthly)
+
+### File Attachment Implementation
+
+**Backend (`backend/app/api/v1/issues.py`):**
+- Upload directory: `/tmp/issue_attachments` (created on startup)
+- Validation: Image files only (`content_type.startswith('image/')`)
+- Size limit: 5MB max
+- Filename: `{timestamp}_{original_filename}` for uniqueness
+- Upload endpoint: `POST /api/v1/issues/upload` (multipart/form-data)
+- Retrieval endpoint: `GET /api/v1/issues/attachments/{filename}` (FileResponse)
+- Returns relative URL: `/api/v1/issues/attachments/{filename}`
+
+**Frontend (`frontend/src/services/issues.ts`):**
+- `uploadAttachment(file: File)` function uses FormData
+- Converts backend relative URL to absolute URL
+- Uses `VITE_API_URL` env variable or `window.location.origin`
+- Multiple file upload support in create modal
+- Image preview grid in detail modal
+
+**Schema (`backend/app/schemas/issue.py`):**
+- `attachments: Optional[List[str]]` field for URL list
+- Stored as array of strings in Firestore
+- Displayed as clickable image thumbnails in UI
+
+**Important Notes:**
+- Files are ephemeral on Render.com free tier (/tmp cleared on restart)
+- No Firebase Storage to maintain $0/month cost
+- Production should migrate to S3/GCS for persistent storage
 
 ### Common Development Patterns
 
@@ -329,12 +368,10 @@ Required environment variables:
 3. **No Email Service**: Forgot password shows temp password in response (not production-ready)
 4. **React 19**: Recently upgraded - monitor for compatibility issues
 5. **TestRunStatus Enum**: Recently added `CANCELLED` status (line 11 in `testrun.py`)
+6. **Ephemeral File Storage**: Issue attachments stored in `/tmp` are lost on server restart (acceptable for free tier, but should migrate to persistent storage like S3/GCS in production)
+7. **No Firebase Storage**: Deliberately avoided to maintain $0/month cost (Firebase Storage requires Blaze plan with credit card)
 
 ### Testing
-
-**Default Admin Account:**
-- Email: admin@tcms.com
-- Password: admin123
 
 **Test Workflow:**
 1. Login with admin account
@@ -343,8 +380,10 @@ Required environment variables:
 4. Create test run with selected test cases
 5. Execute tests and record results
 6. View statistics on dashboard
-7. Create issues for failed tests
-8. Track issues on kanban board
+7. Create issues for failed tests with screenshot attachments
+8. Track issues on kanban board with drag-and-drop
+9. View issue details in modal (list view) or dedicated page
+10. Filter issues by test run, status, assignee
 
 ### Troubleshooting
 
