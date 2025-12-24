@@ -6,7 +6,7 @@ from app.db.supabase import issues_collection, projects_collection, testcases_co
 from app.core.security import get_current_user_firestore
 from app.schemas.issue import IssueCreate, IssueUpdate, Issue as IssueSchema
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 @router.post("", response_model=IssueSchema, status_code=status.HTTP_201_CREATED)

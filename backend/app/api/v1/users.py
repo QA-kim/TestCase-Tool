@@ -6,7 +6,7 @@ from app.core.security import get_current_user_firestore
 from app.core.permissions import check_admin_role
 from app.schemas.user import User as UserSchema
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 @router.get("", response_model=List[UserSchema])

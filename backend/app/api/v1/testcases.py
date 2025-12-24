@@ -9,7 +9,7 @@ from app.db.supabase import testcases_collection, testcase_history_collection, p
 from app.core.security import get_current_user_firestore
 from app.schemas.testcase import TestCaseCreate, TestCaseUpdate, TestCase as TestCaseSchema
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 @router.post("", response_model=TestCaseSchema, status_code=status.HTTP_201_CREATED)
