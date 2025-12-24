@@ -12,7 +12,7 @@ from app.schemas.testcase import TestCaseCreate, TestCaseUpdate, TestCase as Tes
 router = APIRouter()
 
 
-@router.post("/", response_model=TestCaseSchema, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=TestCaseSchema, status_code=status.HTTP_201_CREATED)
 def create_testcase(
     testcase_in: TestCaseCreate,
     current_user: dict = Depends(get_current_user_firestore)
@@ -22,7 +22,7 @@ def create_testcase(
     return testcase
 
 
-@router.get("/", response_model=List[TestCaseSchema])
+@router.get("", response_model=List[TestCaseSchema])
 def list_testcases(
     project_id: str = None,
     skip: int = 0,

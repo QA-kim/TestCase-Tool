@@ -9,7 +9,7 @@ from app.schemas.issue import IssueCreate, IssueUpdate, Issue as IssueSchema
 router = APIRouter()
 
 
-@router.post("/", response_model=IssueSchema, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=IssueSchema, status_code=status.HTTP_201_CREATED)
 def create_issue(
     issue_in: IssueCreate,
     current_user: dict = Depends(get_current_user_firestore)
@@ -38,7 +38,7 @@ def create_issue(
     return issue
 
 
-@router.get("/", response_model=List[IssueSchema])
+@router.get("", response_model=List[IssueSchema])
 def list_issues(
     project_id: str = None,
     testrun_id: str = None,

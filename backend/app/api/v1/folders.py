@@ -16,7 +16,7 @@ router = APIRouter()
 folders_collection = FirestoreHelper('testfolders')
 
 
-@router.post("/", response_model=TestFolderSchema, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=TestFolderSchema, status_code=status.HTTP_201_CREATED)
 def create_folder(
     folder_in: TestFolderCreate,
     current_user: dict = Depends(get_current_user_firestore)
@@ -30,7 +30,7 @@ def create_folder(
     return folder
 
 
-@router.get("/", response_model=List[TestFolderSchema])
+@router.get("", response_model=List[TestFolderSchema])
 def list_folders(
     project_id: str = None,
     parent_id: str = None,

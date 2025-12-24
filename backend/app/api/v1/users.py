@@ -9,7 +9,7 @@ from app.schemas.user import User as UserSchema
 router = APIRouter()
 
 
-@router.get("/", response_model=List[UserSchema])
+@router.get("", response_model=List[UserSchema])
 def get_users(current_user: dict = Depends(get_current_user_firestore)):
     """Get all users (for displaying names in history)"""
     users = users_collection.list(limit=1000)

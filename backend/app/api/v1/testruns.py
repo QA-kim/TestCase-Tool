@@ -16,7 +16,7 @@ from app.schemas.testrun import (
 router = APIRouter()
 
 
-@router.post("/", response_model=TestRunSchema, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=TestRunSchema, status_code=status.HTTP_201_CREATED)
 def create_testrun(
     testrun_in: TestRunCreate,
     current_user: dict = Depends(get_current_user_firestore)
@@ -30,7 +30,7 @@ def create_testrun(
     return testrun
 
 
-@router.get("/", response_model=List[TestRunSchema])
+@router.get("", response_model=List[TestRunSchema])
 def list_testruns(
     project_id: str = None,
     skip: int = 0,
@@ -118,7 +118,7 @@ def get_testrun_results(
     return results
 
 
-@router.post("/results/", response_model=TestResultSchema, status_code=status.HTTP_201_CREATED)
+@router.post("/results", response_model=TestResultSchema, status_code=status.HTTP_201_CREATED)
 def create_testresult(
     result_in: TestResultCreate,
     current_user: dict = Depends(get_current_user_firestore)
