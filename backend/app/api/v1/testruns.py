@@ -13,7 +13,7 @@ from app.schemas.testrun import (
     TestResult as TestResultSchema
 )
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 @router.post("", response_model=TestRunSchema, status_code=status.HTTP_201_CREATED)

@@ -10,7 +10,7 @@ from app.schemas.testcase import (
     TestFolder as TestFolderSchema
 )
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 # Create folder collection helper
 folders_collection = FirestoreHelper('testfolders')
