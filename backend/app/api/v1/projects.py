@@ -9,7 +9,7 @@ from app.schemas.project import ProjectCreate, ProjectUpdate, Project as Project
 router = APIRouter()
 
 
-@router.post("/", response_model=ProjectSchema, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ProjectSchema, status_code=status.HTTP_201_CREATED)
 def create_project(
     project_in: ProjectCreate,
     current_user: dict = Depends(get_current_user_firestore)
@@ -32,7 +32,7 @@ def create_project(
     return project
 
 
-@router.get("/", response_model=List[ProjectSchema])
+@router.get("", response_model=List[ProjectSchema])
 def list_projects(
     skip: int = 0,
     limit: int = 100,
