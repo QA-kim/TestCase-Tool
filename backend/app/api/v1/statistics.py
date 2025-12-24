@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import datetime, timedelta
 from collections import defaultdict
 
-from app.db.firestore import (
+from app.db.supabase import (
     projects_collection,
     testcases_collection,
     testruns_collection,

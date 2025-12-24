@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 
-from app.db.firestore import projects_collection
+from app.db.supabase import projects_collection
 from app.core.security import get_current_user_firestore
 from app.core.permissions import check_creation_permission, check_modification_permission
 from app.schemas.project import ProjectCreate, ProjectUpdate, Project as ProjectSchema

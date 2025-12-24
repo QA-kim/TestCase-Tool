@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.db.firestore import users_collection
+from app.db.supabase import users_collection
 from app.core.security import get_current_user_firestore
 from app.core.permissions import check_admin_role
 from app.schemas.user import User as UserSchema
