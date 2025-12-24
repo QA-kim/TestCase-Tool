@@ -4,7 +4,7 @@ uvicorn[standard]==0.22.0
 pydantic==1.10.18
 
 # Database
-firebase-admin==6.3.0
+supabase==2.10.0
 
 # Authentication & Security
 python-jose==3.3.0
@@ -25,4 +25,3 @@ sib-api-v3-sdk==7.6.0
 
 # Security & Rate Limiting
 slowapi==0.1.9
-supabase==2.10.0

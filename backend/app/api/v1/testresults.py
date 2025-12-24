@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 
-from app.db.firestore import testresults_collection
+from app.db.supabase import testresults_collection
 from app.core.security import get_current_user_firestore
 from app.schemas.testrun import (
     TestResultCreate,

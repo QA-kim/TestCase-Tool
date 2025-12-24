@@ -5,7 +5,7 @@ from io import BytesIO
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 
-from app.db.firestore import testcases_collection, testcase_history_collection, projects_collection
+from app.db.supabase import testcases_collection, testcase_history_collection, projects_collection
 from app.core.security import get_current_user_firestore
 from app.schemas.testcase import TestCaseCreate, TestCaseUpdate, TestCase as TestCaseSchema
 

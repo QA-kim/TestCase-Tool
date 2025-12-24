@@ -45,7 +45,9 @@
       "Bash(npx firebase-tools deploy:*)",
       "Bash(python3:*)",
       "Bash(ls:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(git checkout:*)",
+      "Bash(do sed -i '' 's/from app\\.db\\.firestore import/from app.db.supabase import/g' \"$file\")"
     ],
     "deny": [],
     "ask": []

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 
-from app.db.firestore import FirestoreHelper
+from app.db.supabase import FirestoreHelper
 from app.core.security import get_current_user_firestore
 from app.core.permissions import check_write_permission
 from app.schemas.testcase import (

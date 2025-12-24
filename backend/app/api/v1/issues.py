@@ -1,19 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
-from fastapi.responses import FileResponse
 from typing import List
-import os
-import shutil
-from pathlib import Path
+import time
 
-from app.db.firestore import issues_collection, projects_collection, testcases_collection
+from app.db.supabase import issues_collection, projects_collection, testcases_collection, upload_file, get_file_url
 from app.core.security import get_current_user_firestore
 from app.schemas.issue import IssueCreate, IssueUpdate, Issue as IssueSchema
 
 router = APIRouter()
-
-# Create uploads directory
-UPLOAD_DIR = Path("/tmp/issue_attachments")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @router.post("/", response_model=IssueSchema, status_code=status.HTTP_201_CREATED)
@@ -174,7 +167,7 @@ async def upload_attachment(
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user_firestore)
 ):
-    """Upload an attachment file"""
+    """Upload an attachment file to Supabase Storage"""
     # Validate file type (only images)
     if not file.content_type or not file.content_type.startswith('image/'):
         raise HTTPException(
@@ -194,32 +187,22 @@ async def upload_attachment(
         )
 
     # Generate unique filename
-    import time
     timestamp = int(time.time() * 1000)
-    file_extension = os.path.splitext(file.filename)[1] if file.filename else '.jpg'
     filename = f"{timestamp}_{file.filename}"
-    file_path = UPLOAD_DIR / filename
 
-    # Save file
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # Read file data
+    file_data = await file.read()
 
-    # Return file URL
-    return {"url": f"/api/v1/issues/attachments/{filename}"}
-
-
-@router.get("/attachments/{filename}")
-async def get_attachment(
-    filename: str,
-    current_user: dict = Depends(get_current_user_firestore)
-):
-    """Get an attachment file"""
-    file_path = UPLOAD_DIR / filename
-
-    if not file_path.exists():
+    # Upload to Supabase Storage
+    try:
+        public_url = upload_file("issue-attachments", filename, file_data)
+        return {"url": public_url}
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="File not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload file: {str(e)}"
         )
 
-    return FileResponse(file_path)
+
+# Note: Attachments are served directly from Supabase Storage public URLs
+# No need for a separate endpoint - files are accessed via public URL
