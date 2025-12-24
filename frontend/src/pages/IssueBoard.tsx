@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Plus, X, Bug, Lightbulb, ListTodo, AlertCircle, Circle, FileText, Upload, Paperclip } from 'lucide-react'
+import { Plus, X, Bug, Lightbulb, ListTodo, AlertCircle, Circle, FileText, Upload, Paperclip, Edit3, Save } from 'lucide-react'
 import { issuesApi, Issue, IssueStatus, IssuePriority, IssueType, uploadAttachment } from '../services/issues'
 import api from '../lib/axios'
 
@@ -636,6 +636,18 @@ function IssueCard({
 // Issue Detail Modal Component
 function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => void }) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [isEditing, setIsEditing] = useState(false)
+  const [editFormData, setEditFormData] = useState({
+    title: issue.title,
+    description: issue.description || '',
+    priority: issue.priority,
+    issue_type: issue.issue_type,
+    assigned_to: issue.assigned_to || '',
+  })
+  const [newAttachments, setNewAttachments] = useState<File[]>([])
+  const [uploadingFiles, setUploadingFiles] = useState(false)
+
   const TypeIcon = TYPE_CONFIG[issue.issue_type].icon
   const priorityConfig = PRIORITY_CONFIG[issue.priority]
   const typeConfig = TYPE_CONFIG[issue.issue_type]
@@ -673,12 +685,73 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
     { enabled: !!issue.assigned_to }
   )
 
+  // Fetch users for assignee selection
+  const { data: users } = useQuery('users', async () => {
+    const response = await api.get('/users/')
+    return response.data
+  })
+
+  // Update mutation
+  const updateMutation = useMutation(
+    async (data: any) => {
+      // Upload new attachments if any
+      let newAttachmentUrls: string[] = []
+      if (newAttachments.length > 0) {
+        setUploadingFiles(true)
+        try {
+          newAttachmentUrls = await Promise.all(
+            newAttachments.map(file => uploadAttachment(file))
+          )
+        } finally {
+          setUploadingFiles(false)
+        }
+      }
+
+      // Merge existing and new attachments
+      const allAttachments = [
+        ...(issue.attachments || []),
+        ...newAttachmentUrls
+      ]
+
+      return issuesApi.update(issue.id, {
+        ...data,
+        attachments: allAttachments.length > 0 ? allAttachments : undefined
+      })
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['issues'])
+        setIsEditing(false)
+        setNewAttachments([])
+        alert('이슈가 수정되었습니다!')
+      },
+    }
+  )
+
+  const handleSave = () => {
+    updateMutation.mutate(editFormData)
+  }
+
+  const handleCancel = () => {
+    setIsEditing(false)
+    setEditFormData({
+      title: issue.title,
+      description: issue.description || '',
+      priority: issue.priority,
+      issue_type: issue.issue_type,
+      assigned_to: issue.assigned_to || '',
+    })
+    setNewAttachments([])
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">이슈 상세</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            {isEditing ? '이슈 수정' : '이슈 상세'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -691,7 +764,19 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
         <div className="p-6 space-y-6">
           {/* Title */}
           <div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">{issue.title}</h3>
+            {isEditing ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">제목 *</label>
+                <input
+                  type="text"
+                  value={editFormData.title}
+                  onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+              </div>
+            ) : (
+              <h3 className="text-2xl font-semibold text-gray-900 mb-4">{issue.title}</h3>
+            )}
           </div>
 
           {/* Metadata */}
@@ -705,57 +790,105 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
 
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1">우선순위</label>
-              <div className={`inline-flex items-center px-3 py-1.5 rounded-md ${priorityConfig.bgColor}`}>
-                <span className={`text-sm font-medium ${priorityConfig.color}`}>
-                  {priorityConfig.label}
-                </span>
-              </div>
+              {isEditing ? (
+                <select
+                  value={editFormData.priority}
+                  onChange={(e) => setEditFormData({ ...editFormData, priority: e.target.value as IssuePriority })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                >
+                  <option value="low">낮음</option>
+                  <option value="medium">중간</option>
+                  <option value="high">높음</option>
+                  <option value="critical">긴급</option>
+                </select>
+              ) : (
+                <div className={`inline-flex items-center px-3 py-1.5 rounded-md ${priorityConfig.bgColor}`}>
+                  <span className={`text-sm font-medium ${priorityConfig.color}`}>
+                    {priorityConfig.label}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1">유형</label>
-              <div className="flex items-center gap-2">
-                <TypeIcon className={`w-5 h-5 ${typeConfig.color}`} />
-                <span className={`text-sm font-medium ${typeConfig.color}`}>
-                  {typeConfig.label}
-                </span>
-              </div>
+              {isEditing ? (
+                <select
+                  value={editFormData.issue_type}
+                  onChange={(e) => setEditFormData({ ...editFormData, issue_type: e.target.value as IssueType })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                >
+                  {Object.entries(TYPE_CONFIG).map(([value, config]) => (
+                    <option key={value} value={value}>
+                      {config.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <TypeIcon className={`w-5 h-5 ${typeConfig.color}`} />
+                  <span className={`text-sm font-medium ${typeConfig.color}`}>
+                    {typeConfig.label}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Description */}
-          {issue.description && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">설명</label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">설명</label>
+            {isEditing ? (
+              <textarea
+                value={editFormData.description}
+                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                rows={6}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                placeholder="이슈 설명을 입력하세요"
+              />
+            ) : issue.description ? (
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
                   {issue.description}
                 </pre>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="text-sm text-gray-500">설명 없음</div>
+            )}
+          </div>
 
           {/* Assigned To */}
-          {issue.assigned_to && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">담당자</label>
-              {assignee ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-sm font-medium text-blue-700">
-                      {assignee.full_name[0]}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{assignee.full_name}</div>
-                    <div className="text-xs text-gray-500">{assignee.email}</div>
-                  </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">담당자</label>
+            {isEditing ? (
+              <select
+                value={editFormData.assigned_to}
+                onChange={(e) => setEditFormData({ ...editFormData, assigned_to: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              >
+                <option value="">담당자 선택 (선택사항)</option>
+                {users?.map((user: any) => (
+                  <option key={user.id} value={user.id}>
+                    {user.full_name} ({user.email})
+                  </option>
+                ))}
+              </select>
+            ) : issue.assigned_to && assignee ? (
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <span className="text-sm font-medium text-blue-700">
+                    {assignee.full_name[0]}
+                  </span>
                 </div>
-              ) : (
-                <div className="text-sm text-gray-500">로딩 중...</div>
-              )}
-            </div>
-          )}
+                <div>
+                  <div className="text-sm font-medium text-gray-900">{assignee.full_name}</div>
+                  <div className="text-xs text-gray-500">{assignee.email}</div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500">담당자 없음</div>
+            )}
+          </div>
 
           {/* Test Case Link */}
           {issue.testcase_id && (
@@ -791,33 +924,108 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
           )}
 
           {/* Attachments */}
-          {issue.attachments && issue.attachments.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">첨부파일</label>
-              <div className="grid grid-cols-2 gap-3">
-                {issue.attachments.map((url, index) => (
-                  <a
-                    key={index}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="relative group overflow-hidden rounded-lg border border-gray-200 hover:border-blue-400 transition-colors"
-                  >
-                    <img
-                      src={url}
-                      alt={`Attachment ${index + 1}`}
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity flex items-center justify-center">
-                      <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">
-                        크게 보기
-                      </span>
-                    </div>
-                  </a>
-                ))}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">첨부파일</label>
+
+            {/* Existing Attachments */}
+            {issue.attachments && issue.attachments.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                {issue.attachments.map((url, index) => {
+                  // Skip old backend relative URLs that no longer work
+                  const isOldBackendUrl = url.startsWith('/api/v1/issues/attachments/')
+                  if (isOldBackendUrl) {
+                    return (
+                      <div
+                        key={index}
+                        className="relative rounded-lg border border-gray-300 bg-gray-50 p-4 flex items-center justify-center"
+                      >
+                        <div className="text-center text-gray-500">
+                          <p className="text-sm">이전 첨부파일</p>
+                          <p className="text-xs mt-1">(더 이상 사용할 수 없음)</p>
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <a
+                      key={index}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative group overflow-hidden rounded-lg border border-gray-200 hover:border-blue-400 transition-colors"
+                    >
+                      <img
+                        src={url}
+                        alt={`Attachment ${index + 1}`}
+                        className="w-full h-48 object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity flex items-center justify-center">
+                        <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">
+                          크게 보기
+                        </span>
+                      </div>
+                    </a>
+                  )
+                })}
               </div>
-            </div>
-          )}
+            )}
+
+            {/* New Attachments Section (when editing) */}
+            {isEditing && (
+              <div className="space-y-2">
+                <label className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        const files = Array.from(e.target.files)
+                        setNewAttachments(prev => [...prev, ...files])
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Upload className="w-5 h-5" />
+                    <span className="text-sm">새 이미지 파일 추가</span>
+                  </div>
+                </label>
+
+                {newAttachments.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-700">추가할 파일:</p>
+                    {newAttachments.map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between px-3 py-2 bg-blue-50 rounded-md border border-blue-200"
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <Paperclip className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                          <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                          <span className="text-xs text-gray-500 flex-shrink-0">
+                            ({(file.size / 1024).toFixed(1)} KB)
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setNewAttachments(prev => prev.filter((_, i) => i !== index))}
+                          className="text-red-500 hover:text-red-700 transition-colors ml-2"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!isEditing && (!issue.attachments || issue.attachments.length === 0) && (
+              <div className="text-sm text-gray-500">첨부파일 없음</div>
+            )}
+          </div>
 
           {/* Timestamps */}
           <div className="pt-4 border-t border-gray-200">
@@ -847,13 +1055,44 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            닫기
-          </button>
+        <div className="flex justify-between items-center p-6 border-t border-gray-200 bg-gray-50">
+          {!isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-2 px-4 py-2 text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors"
+            >
+              <Edit3 className="w-4 h-4" />
+              수정
+            </button>
+          )}
+
+          <div className="flex gap-3 ml-auto">
+            {isEditing ? (
+              <>
+                <button
+                  onClick={handleCancel}
+                  className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={updateMutation.isLoading || uploadingFiles}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  {uploadingFiles ? '파일 업로드 중...' : updateMutation.isLoading ? '저장 중...' : '저장'}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                닫기
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

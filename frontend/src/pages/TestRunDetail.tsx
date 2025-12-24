@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { ArrowLeft, CheckCircle, XCircle, MinusCircle, Ban, Clock, History, User, ChevronDown, FileDown, AlertCircle, X } from 'lucide-react'
+import { ArrowLeft, CheckCircle, XCircle, MinusCircle, Ban, Clock, History, User, ChevronDown, FileDown, AlertCircle, X, Upload, Paperclip } from 'lucide-react'
 import api from '../lib/axios'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
-import { issuesApi } from '../services/issues'
+import { issuesApi, uploadAttachment } from '../services/issues'
 
 export default function TestRunDetail() {
   const { id } = useParams<{ id: string }>()
@@ -20,6 +20,8 @@ export default function TestRunDetail() {
     description: '',
     priority: 'high' as 'low' | 'medium' | 'high' | 'critical',
   })
+  const [issueAttachments, setIssueAttachments] = useState<File[]>([])
+  const [uploadingIssueFiles, setUploadingIssueFiles] = useState(false)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -72,11 +74,30 @@ export default function TestRunDetail() {
   )
 
   const createIssueMutation = useMutation(
-    (data: any) => issuesApi.create(data),
+    async (data: any) => {
+      // Upload attachments if any
+      let attachmentUrls: string[] = []
+      if (issueAttachments.length > 0) {
+        setUploadingIssueFiles(true)
+        try {
+          attachmentUrls = await Promise.all(
+            issueAttachments.map(file => uploadAttachment(file))
+          )
+        } finally {
+          setUploadingIssueFiles(false)
+        }
+      }
+
+      return issuesApi.create({
+        ...data,
+        attachments: attachmentUrls.length > 0 ? attachmentUrls : undefined
+      })
+    },
     {
       onSuccess: () => {
         setIssueModalOpen(false)
         setIssueFormData({ title: '', description: '', priority: 'high' })
+        setIssueAttachments([])
         alert('이슈가 생성되었습니다!')
       },
     }
@@ -711,22 +732,78 @@ ${testcase.expected_result || '예상결과가 명시되지 않았습니다.'}
                     <option value="high">높음</option>
                   </select>
                 </div>
+
+                {/* File Attachments */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    첨부파일 (스크린샷)
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            const newFiles = Array.from(e.target.files)
+                            setIssueAttachments(prev => [...prev, ...newFiles])
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Upload className="w-5 h-5" />
+                        <span className="text-sm">이미지 파일 선택</span>
+                      </div>
+                    </label>
+
+                    {issueAttachments.length > 0 && (
+                      <div className="space-y-2">
+                        {issueAttachments.map((file, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-md border border-gray-200"
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Paperclip className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                              <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                              <span className="text-xs text-gray-500 flex-shrink-0">
+                                ({(file.size / 1024).toFixed(1)} KB)
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setIssueAttachments(prev => prev.filter((_, i) => i !== index))}
+                              className="text-red-500 hover:text-red-700 transition-colors ml-2"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
                 <button
                   type="button"
-                  onClick={() => setIssueModalOpen(false)}
+                  onClick={() => {
+                    setIssueModalOpen(false)
+                    setIssueAttachments([])
+                  }}
                   className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  disabled={createIssueMutation.isLoading}
+                  disabled={createIssueMutation.isLoading || uploadingIssueFiles}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
-                  {createIssueMutation.isLoading ? '생성 중...' : '이슈 생성'}
+                  {uploadingIssueFiles ? '파일 업로드 중...' : createIssueMutation.isLoading ? '생성 중...' : '이슈 생성'}
                 </button>
               </div>
             </form>
