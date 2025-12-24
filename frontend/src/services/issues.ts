@@ -49,7 +49,7 @@ export interface IssueUpdate {
   attachments?: string[]
 }
 
-// Upload file to backend
+// Upload file to backend (Supabase Storage)
 export const uploadAttachment = async (file: File): Promise<string> => {
   const formData = new FormData()
   formData.append('file', file)
@@ -60,14 +60,9 @@ export const uploadAttachment = async (file: File): Promise<string> => {
     },
   })
 
-  // Convert relative URL to absolute URL
-  const relativeUrl = response.data.url
-  const baseURL = import.meta.env.VITE_API_URL || window.location.origin + '/api/v1'
-
-  // Remove /api/v1 from relative URL if it exists
-  const path = relativeUrl.replace('/api/v1', '')
-
-  return `${baseURL}${path}`
+  // Backend now returns full Supabase Storage public URL
+  // No need to convert - use directly
+  return response.data.url
 }
 
 export const issuesApi = {
