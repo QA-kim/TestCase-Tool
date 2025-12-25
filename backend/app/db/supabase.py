@@ -19,8 +19,21 @@ if not SUPABASE_URL or not SUPABASE_KEY:
         f"SUPABASE_SERVICE_KEY={'set' if SUPABASE_KEY else 'MISSING'}"
     )
 
+# Debug logging (will be visible in Render logs)
+print(f"🔍 Supabase Configuration:")
+print(f"   URL: {SUPABASE_URL[:30]}... (length: {len(SUPABASE_URL)})")
+print(f"   KEY: {SUPABASE_KEY[:20]}... (length: {len(SUPABASE_KEY)})")
+print(f"   KEY starts with 'eyJ': {SUPABASE_KEY.startswith('eyJ')}")
+
 # Create Supabase client
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+try:
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    print("✅ Supabase client created successfully")
+except Exception as e:
+    print(f"❌ Failed to create Supabase client: {e}")
+    print(f"   URL format check: {SUPABASE_URL.startswith('https://')}")
+    print(f"   URL ends with .supabase.co: {'.supabase.co' in SUPABASE_URL}")
+    raise
 
 
 class SupabaseCollection:
