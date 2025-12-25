@@ -10,6 +10,15 @@ from datetime import datetime
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")  # Use service_role key for backend
 
+# Validate environment variables
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise ValueError(
+        "Missing required Supabase environment variables. "
+        "Please set SUPABASE_URL and SUPABASE_SERVICE_KEY in Render.com dashboard. "
+        f"SUPABASE_URL={'set' if SUPABASE_URL else 'MISSING'}, "
+        f"SUPABASE_SERVICE_KEY={'set' if SUPABASE_KEY else 'MISSING'}"
+    )
+
 # Create Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
