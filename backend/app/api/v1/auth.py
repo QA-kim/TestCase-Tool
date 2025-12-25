@@ -126,7 +126,7 @@ def register(request: Request, user_in: UserCreate):
         'username': user_in.email,  # Use email as username
         'full_name': user_in.full_name,
         'role': 'viewer',  # Always viewer for registration
-        'hashed_password': get_password_hash(user_in.password),
+        'password_hash': get_password_hash(user_in.password),
         'is_active': True,
         'is_locked': False,
         'failed_login_attempts': 0
@@ -206,7 +206,7 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
         )
 
     # Verify password
-    if not verify_password(form_data.password, user['hashed_password']):
+    if not verify_password(form_data.password, user['password_hash']):
         # Increment failed login attempts
         failed_attempts = user.get('failed_login_attempts', 0) + 1
         update_data = {'failed_login_attempts': failed_attempts}
@@ -321,7 +321,7 @@ def reset_password_request(request: Request, reset_request: ResetPasswordRequest
 
     # Update user with temporary password and flag
     users_collection.update(user['id'], {
-        'hashed_password': get_password_hash(temp_password),
+        'password_hash': get_password_hash(temp_password),
         'is_temp_password': True,
         'password_reset_at': datetime.utcnow()
     })
@@ -364,7 +364,7 @@ def change_password(
 ):
     """비밀번호 변경"""
     # Verify current password
-    if not verify_password(request.current_password, current_user['hashed_password']):
+    if not verify_password(request.current_password, current_user['password_hash']):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="현재 비밀번호가 일치하지 않습니다"
@@ -372,7 +372,7 @@ def change_password(
 
     # Update password and remove temp flag
     users_collection.update(current_user['id'], {
-        'hashed_password': get_password_hash(request.new_password),
+        'password_hash': get_password_hash(request.new_password),
         'is_temp_password': False,
         'password_changed_at': datetime.utcnow()
     })
