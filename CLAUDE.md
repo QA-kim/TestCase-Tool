@@ -32,7 +32,7 @@ This is a **fully implemented and deployed** Test Case Management System (TCMS) 
 - **Frontend**: https://testcase-e27a4.web.app (Firebase Hosting)
 - **Backend**: https://testcase-tool.onrender.com (Render.com)
 - **API Docs**: https://testcase-tool.onrender.com/docs (Swagger UI)
-- **Database**: Firebase Firestore
+- **Database**: Supabase (PostgreSQL)
 - **Cost**: $0/month (all using free tiers)
 
 ## Implemented Technical Stack
@@ -50,7 +50,7 @@ This is a **fully implemented and deployed** Test Case Management System (TCMS) 
 ### Backend (✅ Implemented)
 - Language: Python 3.13
 - Framework: FastAPI 0.95.2
-- Database: Firebase Firestore (NoSQL)
+- Database: Supabase (PostgreSQL)
 - Authentication: JWT tokens with Python-Jose
 - Password Hashing: pbkdf2_sha256 (pure Python, no Rust dependencies)
 - Validation: Pydantic 1.10.18
@@ -59,7 +59,7 @@ This is a **fully implemented and deployed** Test Case Management System (TCMS) 
 ### Infrastructure (✅ Deployed)
 - Backend Hosting: Render.com (free tier, 750 hours/month, auto-deploy from GitHub)
 - Frontend Hosting: Firebase Hosting (free tier, CDN included)
-- Database: Firebase Firestore (free tier, 1GB storage)
+- Database: Supabase (free tier, 500MB storage, PostgreSQL 15)
 
 ## User Roles (✅ Implemented)
 
@@ -147,11 +147,12 @@ Defined in `backend/app/schemas/user.py`:
 
 ### Key Technical Decisions Made
 
-1. **Database: Firestore (not PostgreSQL)**
-   - All IDs are strings, not integers
-   - No foreign key constraints (manual reference tracking)
-   - Document-based, not relational
-   - Queries use collection helpers with filters
+1. **Database: Supabase (PostgreSQL)**
+   - Migrated from Firebase Firestore to Supabase
+   - Uses PostgreSQL with relational schema
+   - All IDs are UUIDs (strings)
+   - Foreign key relationships managed by database
+   - Helper class (`SupabaseCollection`) provides Firestore-like API
 
 2. **Python Dependencies: Pure Python Only**
    - No Rust-compiled packages (bcrypt, cryptography)
@@ -190,11 +191,12 @@ Defined in `backend/app/schemas/user.py`:
 
 **Backend:**
 - `backend/app/schemas/*.py` - All enums (UserRole, TestPriority, TestRunStatus, IssueStatus, etc.) defined here
-- `backend/app/db/firestore.py` - Firestore helper class with CRUD operations
+- `backend/app/db/supabase.py` - Supabase helper class with CRUD operations (Firestore-like API)
+- `backend/app/db/firestore.py` - Legacy Firestore helper (deprecated)
 - `backend/app/core/security.py` - JWT token handling, password hashing, account lockout logic
 - `backend/app/core/permissions.py` - Role-based permission checks
 - `backend/create_admin.py` - Creates admin user (interactive password prompt)
-- `backend/requirements.txt` - Pure Python dependencies only
+- `backend/requirements.txt` - Pure Python dependencies (includes supabase==2.10.0)
 - `render.yaml` - Render.com deployment configuration
 
 **Frontend:**
@@ -247,24 +249,20 @@ npx firebase-tools deploy --only hosting
 
 Required environment variables:
 - `SECRET_KEY` - JWT secret (generate with `openssl rand -hex 32`)
-- `FIREBASE_PROJECT_ID` - Firebase project ID
-- `FIREBASE_PRIVATE_KEY_ID` - From service account JSON
-- `FIREBASE_PRIVATE_KEY` - From service account JSON (with \n, not actual newlines)
-- `FIREBASE_CLIENT_EMAIL` - From service account JSON
-- `FIREBASE_CLIENT_ID` - From service account JSON
-- `FIREBASE_CLIENT_X509_CERT_URL` - From service account JSON
+- `SUPABASE_URL` - Supabase project URL (e.g., https://xxxxx.supabase.co)
+- `SUPABASE_SERVICE_KEY` - Supabase service role key (from project settings)
 
-### Firestore Collections
+### Supabase Database Tables
 
-**Main Collections:**
-- `users/` - User accounts with roles and security fields
-- `projects/` - Projects with keys and ownership
-- `folders/` - Folder hierarchy for test cases
-- `testcases/` - Test cases with versions
-- `testcase_history/` - Version history snapshots
-- `testruns/` - Test run configurations
-- `testresults/` - Test execution results with history
-- `issues/` - Issues linked to test runs/cases
+**Main Tables:**
+- `users` - User accounts with roles and security fields
+- `projects` - Projects with keys and ownership
+- `folders` - Folder hierarchy for test cases
+- `testcases` - Test cases with versions
+- `testcase_history` - Version history snapshots
+- `testruns` - Test run configurations
+- `testresults` - Test execution results with history
+- `issues` - Issues linked to test runs/cases
 
 ### API Endpoints
 
@@ -327,7 +325,7 @@ Required environment variables:
 
 **Schema (`backend/app/schemas/issue.py`):**
 - `attachments: Optional[List[str]]` field for URL list
-- Stored as array of strings in Firestore
+- Stored as array of strings in Supabase (PostgreSQL ARRAY type)
 - Displayed as clickable image thumbnails in UI
 
 **Important Notes:**
@@ -338,11 +336,12 @@ Required environment variables:
 ### Common Development Patterns
 
 **Backend Patterns:**
-- Use `current_user: dict = Depends(get_current_user_firestore)` for auth
+- Use `current_user: dict = Depends(get_current_user_firestore)` for auth (function name unchanged for compatibility)
 - Use `check_write_permission(current_user, "resource_name")` for write checks
-- Use `collection.get(id)`, `collection.list()`, `collection.create(data)`, `collection.update(id, data)`, `collection.delete(id)`
+- Use `collection.get(id)`, `collection.list()`, `collection.create(data)`, `collection.update(id, data)`, `collection.delete(id)` (Supabase helper provides Firestore-like API)
 - Use Pydantic schemas with `.dict()` for v1 compatibility
 - Enum values: lowercase with underscores (e.g., `in_progress`, not `InProgress`)
+- Database: PostgreSQL via Supabase, but helper class maintains compatibility with Firestore patterns
 
 **Frontend Patterns:**
 - Use React Query for all API calls (`useQuery`, `useMutation`)
@@ -364,12 +363,12 @@ Required environment variables:
 ### Known Issues & Considerations
 
 1. **Render.com Free Tier**: Backend spins down after 15 min inactivity (cold start ~30 sec)
-2. **Firestore Limits**: 1 write/second per document (not an issue for current scale)
+2. **Supabase Free Tier**: 500MB database storage, 2GB bandwidth/month, 50MB file storage
 3. **No Email Service**: Forgot password shows temp password in response (not production-ready)
 4. **React 19**: Recently upgraded - monitor for compatibility issues
 5. **TestRunStatus Enum**: Recently added `CANCELLED` status (line 11 in `testrun.py`)
 6. **Ephemeral File Storage**: Issue attachments stored in `/tmp` are lost on server restart (acceptable for free tier, but should migrate to persistent storage like S3/GCS in production)
-7. **No Firebase Storage**: Deliberately avoided to maintain $0/month cost (Firebase Storage requires Blaze plan with credit card)
+7. **Database Migration**: Migrated from Firebase Firestore to Supabase PostgreSQL for better relational data management
 
 ### Testing
 

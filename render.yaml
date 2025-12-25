@@ -10,15 +10,7 @@ services:
     envVars:
       - key: SECRET_KEY
         sync: false
-      - key: FIREBASE_PROJECT_ID
+      - key: SUPABASE_URL
         sync: false
-      - key: FIREBASE_PRIVATE_KEY_ID
-        sync: false
-      - key: FIREBASE_PRIVATE_KEY
-        sync: false
-      - key: FIREBASE_CLIENT_EMAIL
-        sync: false
-      - key: FIREBASE_CLIENT_ID
-        sync: false
-      - key: FIREBASE_CLIENT_X509_CERT_URL
+      - key: SUPABASE_SERVICE_KEY
         sync: false
