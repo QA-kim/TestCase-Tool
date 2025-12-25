@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 
-from app.db.supabase import FirestoreHelper
+from app.db.supabase import folders_collection
 from app.core.security import get_current_user_firestore
 from app.core.permissions import check_write_permission
 from app.schemas.testcase import (
@@ -11,9 +11,6 @@ from app.schemas.testcase import (
 )
 
 router = APIRouter(redirect_slashes=False)
-
-# Create folder collection helper
-folders_collection = FirestoreHelper('testfolders')
 
 
 @router.post("", response_model=TestFolderSchema, status_code=status.HTTP_201_CREATED)
