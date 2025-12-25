@@ -50,6 +50,13 @@ class SupabaseCollection:
             return result.data[0]
         return None
 
+    def get_by_field(self, field: str, value: Any) -> Optional[Dict]:
+        """Get a single document by field value"""
+        result = self.table.select("*").eq(field, value).execute()
+        if result.data and len(result.data) > 0:
+            return result.data[0]
+        return None
+
     def list(self, limit: int = 100, offset: int = 0) -> List[Dict]:
         """List all documents with pagination"""
         result = self.table.select("*").range(offset, offset + limit - 1).execute()
