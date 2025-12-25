@@ -52,10 +52,14 @@ class SupabaseCollection:
 
     def get_by_field(self, field: str, value: Any) -> Optional[Dict]:
         """Get a single document by field value"""
-        result = self.table.select("*").eq(field, value).execute()
-        if result.data and len(result.data) > 0:
-            return result.data[0]
-        return None
+        try:
+            result = self.table.select("*").eq(field, value).execute()
+            if result.data and len(result.data) > 0:
+                return result.data[0]
+            return None
+        except Exception as e:
+            print(f"❌ Error in get_by_field({self.table_name}, {field}={value}): {e}")
+            raise
 
     def list(self, limit: int = 100, offset: int = 0) -> List[Dict]:
         """List all documents with pagination"""
