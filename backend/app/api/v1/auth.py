@@ -128,7 +128,6 @@ def register(request: Request, user_in: UserCreate):
         'role': 'viewer',  # Always viewer for registration
         'password_hash': get_password_hash(user_in.password),
         'is_active': True,
-        'is_locked': False,
         'failed_login_attempts': 0
     }
 
@@ -152,37 +151,34 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Check if account is locked
-    if user.get('is_locked', False):
-        locked_until = user.get('locked_until')
+    # Check if account is locked (based on locked_until field)
+    locked_until = user.get('locked_until')
+    if locked_until:
         try:
             # Ensure locked_until is a datetime object
-            if locked_until:
-                if isinstance(locked_until, str):
-                    locked_until = datetime.fromisoformat(locked_until.replace('Z', '+00:00'))
+            if isinstance(locked_until, str):
+                locked_until = datetime.fromisoformat(locked_until.replace('Z', '+00:00'))
 
-                # Check if lock is still active
-                # Use timezone-aware datetime for comparison
-                current_time = datetime.now(timezone.utc)
-                # Convert locked_until to naive UTC if it's timezone-aware
-                locked_until_naive = locked_until.replace(tzinfo=None) if hasattr(locked_until, 'tzinfo') and locked_until.tzinfo else locked_until
-                current_time_naive = current_time.replace(tzinfo=None)
+            # Check if lock is still active
+            # Use timezone-aware datetime for comparison
+            current_time = datetime.now(timezone.utc)
+            # Convert locked_until to naive UTC if it's timezone-aware
+            locked_until_naive = locked_until.replace(tzinfo=None) if hasattr(locked_until, 'tzinfo') and locked_until.tzinfo else locked_until
+            current_time_naive = current_time.replace(tzinfo=None)
 
-                if current_time_naive < locked_until_naive:
-                    remaining_minutes = max(1, int((locked_until_naive - current_time_naive).total_seconds() / 60))
-                    locked_time_str = locked_until.strftime("%Y-%m-%d %H:%M:%S UTC")
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail=f"계정이 잠겼습니다. {remaining_minutes}분 후에 다시 시도해주세요.\n잠금 해제 시간: {locked_time_str}"
-                    )
+            if current_time_naive < locked_until_naive:
+                remaining_minutes = max(1, int((locked_until_naive - current_time_naive).total_seconds() / 60))
+                locked_time_str = locked_until.strftime("%Y-%m-%d %H:%M:%S UTC")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"계정이 잠겼습니다. {remaining_minutes}분 후에 다시 시도해주세요.\n잠금 해제 시간: {locked_time_str}"
+                )
 
-            # If we get here, either no locked_until or lock expired - unlock account
+            # If we get here, lock expired - unlock account
             users_collection.update(user['id'], {
-                'is_locked': False,
                 'failed_login_attempts': 0,
                 'locked_until': None
             })
-            user['is_locked'] = False
             user['failed_login_attempts'] = 0
 
         except HTTPException:
@@ -192,11 +188,9 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
             # Log error and unlock account for any other errors
             logger.error(f"Error processing locked_until: {e}, locked_until={locked_until}, type={type(locked_until)}")
             users_collection.update(user['id'], {
-                'is_locked': False,
                 'failed_login_attempts': 0,
                 'locked_until': None
             })
-            user['is_locked'] = False
 
     # Check if account is active
     if not user.get('is_active', True):
@@ -217,7 +211,6 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
             # Use timezone-aware datetime and convert to naive for storage
             locked_until = (datetime.now(timezone.utc) + timedelta(minutes=lock_duration_minutes)).replace(tzinfo=None)
             update_data.update({
-                'is_locked': True,
                 'locked_until': locked_until
             })
             users_collection.update(user['id'], update_data)
@@ -240,7 +233,6 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     if user.get('failed_login_attempts', 0) > 0:
         users_collection.update(user['id'], {
             'failed_login_attempts': 0,
-            'is_locked': False,
             'locked_until': None
         })
 
