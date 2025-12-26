@@ -48,9 +48,8 @@ def unlock_user_account(
             detail="사용자를 찾을 수 없습니다"
         )
 
-    # Unlock account
+    # Unlock account (Supabase doesn't have is_locked field)
     users_collection.update(user_id, {
-        'is_locked': False,
         'failed_login_attempts': 0,
         'locked_until': None
     })
