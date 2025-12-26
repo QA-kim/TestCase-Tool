@@ -79,7 +79,7 @@ def update_testcase(
         'expected_result': testcase.get('expected_result'),
         'priority': testcase.get('priority'),
         'test_type': testcase.get('test_type'),
-        'changed_by': current_user['id'],
+        'modified_by': current_user['id'],  # Supabase uses modified_by instead of changed_by
         'change_note': testcase_in.dict().get('change_note', None)  # Pydantic v1 uses .dict()
     }
     testcase_history_collection.create(history_data)

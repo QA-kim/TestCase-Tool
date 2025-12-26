@@ -34,16 +34,14 @@ def create_testresult(
 ):
     from datetime import datetime
     result_data = result_in.dict()  # Pydantic v1 uses .dict()
-    result_data['tester_id'] = current_user['id']
-    result_data['tested_at'] = datetime.utcnow().isoformat()
 
-    # Add to history
-    result_data['history'] = [{
-        'status': result_data['status'],
-        'comment': result_data.get('comment'),
-        'tester_id': current_user['id'],
-        'tested_at': result_data['tested_at']
-    }]
+    # Use Supabase field names
+    result_data['executed_by'] = current_user['id']
+    result_data['executed_at'] = datetime.utcnow().isoformat()
+
+    # Remove fields that don't exist in Supabase schema
+    result_data.pop('defect_url', None)
+    result_data.pop('execution_time', None)
 
     result = testresults_collection.create(result_data)
     return result
@@ -78,18 +76,14 @@ def update_testresult(
         )
 
     update_data = result_in.dict(exclude_unset=True)  # Pydantic v1 uses .dict()
-    update_data['tested_at'] = datetime.utcnow().isoformat()
 
-    # Add to history if status changed
-    if 'status' in update_data:
-        history = result.get('history', [])
-        history.append({
-            'status': update_data['status'],
-            'comment': update_data.get('comment'),
-            'tester_id': current_user['id'],
-            'tested_at': update_data['tested_at']
-        })
-        update_data['history'] = history
+    # Use Supabase field names
+    update_data['executed_by'] = current_user['id']
+    update_data['executed_at'] = datetime.utcnow().isoformat()
+
+    # Remove fields that don't exist in Supabase schema
+    update_data.pop('defect_url', None)
+    update_data.pop('execution_time', None)
 
     testresults_collection.update(result_id, update_data)
 
