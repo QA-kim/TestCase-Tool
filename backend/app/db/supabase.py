@@ -12,12 +12,14 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")  # Use service_role key for
 
 # Validate environment variables
 if not SUPABASE_URL or not SUPABASE_KEY:
-    raise ValueError(
+    error_msg = (
         "Missing required Supabase environment variables. "
         "Please set SUPABASE_URL and SUPABASE_SERVICE_KEY in Render.com dashboard. "
         f"SUPABASE_URL={'set' if SUPABASE_URL else 'MISSING'}, "
         f"SUPABASE_SERVICE_KEY={'set' if SUPABASE_KEY else 'MISSING'}"
     )
+    print(f"❌ {error_msg}")
+    raise ValueError(error_msg)
 
 # Debug logging (will be visible in Render logs)
 print(f"🔍 Supabase Configuration:")
@@ -41,9 +43,12 @@ try:
     )
     print("✅ Supabase client created successfully")
 except Exception as e:
-    print(f"❌ Failed to create Supabase client: {e}")
+    print(f"❌ Failed to create Supabase client: {type(e).__name__}: {e}")
     print(f"   URL format check: {SUPABASE_URL.startswith('https://')}")
     print(f"   URL ends with .supabase.co: {'.supabase.co' in SUPABASE_URL}")
+    print(f"   Full error details:")
+    import traceback
+    traceback.print_exc()
     raise
 
 
