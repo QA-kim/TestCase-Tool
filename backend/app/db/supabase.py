@@ -25,9 +25,20 @@ print(f"   URL: {SUPABASE_URL[:30]}... (length: {len(SUPABASE_URL)})")
 print(f"   KEY: {SUPABASE_KEY[:20]}... (length: {len(SUPABASE_KEY)})")
 print(f"   KEY starts with 'eyJ': {SUPABASE_KEY.startswith('eyJ')}")
 
-# Create Supabase client
+# Create Supabase client with HTTP/1.1 (more stable for Render.com)
 try:
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    # Create client with custom options to avoid HTTP/2 issues
+    supabase: Client = create_client(
+        SUPABASE_URL,
+        SUPABASE_KEY,
+        options={
+            "auto_refresh_token": False,
+            "persist_session": False,
+            "headers": {
+                "Connection": "close"  # Prevent connection reuse issues
+            }
+        }
+    )
     print("✅ Supabase client created successfully")
 except Exception as e:
     print(f"❌ Failed to create Supabase client: {e}")
@@ -63,8 +74,12 @@ class SupabaseCollection:
 
     def list(self, limit: int = 100, offset: int = 0) -> List[Dict]:
         """List all documents with pagination"""
-        result = self.table.select("*").range(offset, offset + limit - 1).execute()
-        return result.data or []
+        try:
+            result = self.table.select("*").range(offset, offset + limit - 1).execute()
+            return result.data or []
+        except Exception as e:
+            print(f"❌ Error in list({self.table_name}): {e}")
+            raise
 
     def query(self, field: str, operator: str, value: Any) -> List[Dict]:
         """Query documents by field"""
