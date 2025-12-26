@@ -74,8 +74,8 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
 
 def get_current_user_firestore(token: str = Depends(oauth2_scheme)):
-    """Get current user from Firestore"""
-    from app.db.firestore import users_collection
+    """Get current user from Supabase (function name kept for compatibility)"""
+    from app.db.supabase import users_collection
 
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
