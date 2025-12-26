@@ -195,6 +195,22 @@ export default function TestRuns() {
     }))
   }
 
+  // Select all test cases
+  const handleSelectAll = () => {
+    setFormData(prev => ({
+      ...prev,
+      test_case_ids: filteredTestCases.map((tc: any) => tc.id)
+    }))
+  }
+
+  // Deselect all test cases
+  const handleDeselectAll = () => {
+    setFormData(prev => ({
+      ...prev,
+      test_case_ids: []
+    }))
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -587,15 +603,36 @@ export default function TestRuns() {
 
                   {/* Right Column - Test Cases */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      테스트 케이스 선택
-                      {formData.test_case_ids.length > 0 && (
-                        <span className="ml-2 text-sm text-primary-600 font-semibold">
-                          ({formData.test_case_ids.length}개 선택됨)
-                        </span>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-medium text-gray-700">
+                        테스트 케이스 선택
+                        {formData.test_case_ids.length > 0 && (
+                          <span className="ml-2 text-sm text-primary-600 font-semibold">
+                            ({formData.test_case_ids.length}개 선택됨)
+                          </span>
+                        )}
+                      </label>
+                      {filteredTestCases.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handleSelectAll}
+                            className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                          >
+                            전체 선택
+                          </button>
+                          <span className="text-gray-400">|</span>
+                          <button
+                            type="button"
+                            onClick={handleDeselectAll}
+                            className="text-xs text-gray-600 hover:text-gray-700 font-medium"
+                          >
+                            선택 해제
+                          </button>
+                        </div>
                       )}
-                    </label>
-                    <div className="border border-gray-300 rounded-lg p-3 h-[calc(100%-2rem)] overflow-y-auto bg-gray-50">
+                    </div>
+                    <div className="border border-gray-300 rounded-lg p-3 h-[calc(100%-2.5rem)] overflow-y-auto bg-gray-50">
                       {filteredTestCases.length === 0 ? (
                         <p className="text-sm text-gray-500 text-center py-8">
                           선택한 프로젝트에 테스트 케이스가 없습니다.
