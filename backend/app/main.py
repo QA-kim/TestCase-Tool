@@ -107,10 +107,17 @@ app.include_router(issues.router, prefix=f"{settings.API_V1_STR}/issues", tags=[
 @app.get("/")
 @app.head("/")
 def root():
-    return {"message": "TCMS API with Firebase Firestore", "version": "1.0.0"}
+    return {"message": "TCMS API with Supabase PostgreSQL", "version": "1.0.0"}
 
 
 @app.get("/health")
 @app.head("/health")
 def health_check():
-    return {"status": "healthy", "database": "firestore"}
+    """Health check endpoint with database connection test"""
+    try:
+        # Test Supabase connection
+        from app.db.supabase import projects_collection
+        projects_collection.list(limit=1)  # Quick test query
+        return {"status": "healthy", "database": "supabase"}
+    except Exception as e:
+        return {"status": "unhealthy", "database": "supabase", "error": str(e)}
