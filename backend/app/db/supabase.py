@@ -3,7 +3,7 @@ Supabase client configuration and helper functions
 """
 import os
 from typing import Dict, List, Optional, Any
-from supabase import create_client, Client
+from supabase import create_client, Client, ClientOptions
 from datetime import datetime
 import httpx
 
@@ -34,22 +34,20 @@ try:
     http_client = httpx.Client(
         http2=False,  # Disable HTTP/2
         timeout=httpx.Timeout(30.0),
-        limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
-        headers={
-            "Connection": "close"
-        }
+        limits=httpx.Limits(max_connections=100, max_keepalive_connections=20)
     )
     print("✅ HTTP client created (HTTP/1.1 only)")
 
-    # Create Supabase client with custom HTTP client
+    # Create Supabase client with ClientOptions
+    options = ClientOptions(
+        auto_refresh_token=False,
+        persist_session=False
+    )
+
     supabase: Client = create_client(
         SUPABASE_URL,
         SUPABASE_KEY,
-        options={
-            "auto_refresh_token": False,
-            "persist_session": False,
-            "http_client": http_client
-        }
+        options=options
     )
     print("✅ Supabase client created successfully")
 except Exception as e:
