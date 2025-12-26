@@ -20,7 +20,7 @@ def list_testresults(
     current_user: dict = Depends(get_current_user_firestore)
 ):
     if test_run_id:
-        results = testresults_collection.query('test_run_id', '==', test_run_id)
+        results = testresults_collection.query('testrun_id', '==', test_run_id)
     else:
         results = testresults_collection.list(limit=limit)
 

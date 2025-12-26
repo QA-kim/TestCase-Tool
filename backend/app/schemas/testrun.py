@@ -81,9 +81,9 @@ class TestResultBase(BaseModel):
 
 
 class TestResultCreate(TestResultBase):
-    test_run_id: str  # Firestore uses string IDs
-    test_case_id: str  # Firestore uses string IDs
-    tester_id: Optional[str] = None  # Firestore uses string IDs
+    testrun_id: str  # Supabase uses testrun_id
+    testcase_id: str  # Supabase uses testcase_id
+    executed_by: Optional[str] = None  # Supabase uses executed_by instead of tester_id
 
 
 class TestResultUpdate(BaseModel):
@@ -106,11 +106,10 @@ class TestResultHistory(BaseModel):
 
 class TestResultInDB(TestResultBase):
     id: str  # Firestore uses string IDs
-    test_run_id: str  # Firestore uses string IDs
-    test_case_id: str  # Firestore uses string IDs
-    tester_id: Optional[str] = None  # Firestore uses string IDs
-    tested_at: Optional[datetime] = None
-    history: List['TestResultHistory'] = []  # 상태 변경 히스토리
+    testrun_id: str  # Supabase uses testrun_id
+    testcase_id: str  # Supabase uses testcase_id
+    executed_by: Optional[str] = None  # Supabase uses executed_by instead of tester_id
+    executed_at: Optional[datetime] = None  # Supabase uses executed_at instead of tested_at
     created_at: datetime
     updated_at: datetime
 
