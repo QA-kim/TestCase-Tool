@@ -58,13 +58,13 @@ export default function IssueBoard() {
 
   // Fetch test runs
   const { data: testruns } = useQuery('testruns', async () => {
-    const response = await api.get('/testruns/')
+    const response = await api.get('/testruns')
     return response.data
   })
 
   // Fetch users for assignee selection
   const { data: users } = useQuery('users', async () => {
-    const response = await api.get('/users/')
+    const response = await api.get('/users')
     return response.data
   })
 
@@ -687,7 +687,7 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
 
   // Fetch users for assignee selection
   const { data: users } = useQuery('users', async () => {
-    const response = await api.get('/users/')
+    const response = await api.get('/users')
     return response.data
   })
 

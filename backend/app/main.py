@@ -37,8 +37,10 @@ app.add_middleware(
         "http://tms.r-e.kr"
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 # Global rate limiting middleware for all API routes

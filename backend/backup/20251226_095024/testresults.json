@@ -1,0 +1,600 @@
+[
+  {
+    "history": [
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-10-21T07:53:50.367419",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-10-21T07:53:51.134180",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-10-21T07:53:52.309874",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "blocked",
+        "comment": "",
+        "tested_at": "2025-10-21T07:53:54.388806",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-10-21T07:53:57.991556",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-10-21T23:04:45.365614",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-10-21T23:04:47.754494",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-10-21T23:11:11.512061",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "blocked",
+        "comment": "",
+        "tested_at": "2025-10-21T23:11:13.385042",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-10-21T23:11:51.306993",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-10-21T23:16:35.674313",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-10-21T23:21:53.875205",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-10-21T23:21:55.951803",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-10-21T23:22:06.253886",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-10-21T23:22:13.043626",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-10-21T23:22:37.098969",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-10-21T23:22:41.144003",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "blocked",
+        "comment": "",
+        "tested_at": "2025-10-21T23:39:57.254758",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-10-22T00:42:27.258742",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-10-22T01:06:13.636953",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "blocked",
+        "comment": "",
+        "tested_at": "2025-10-22T01:41:51.139243",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-10-28T06:26:13.177172",
+        "tester_id": "qhaysSflrXbVu8PXzAl4"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-10-28T06:26:14.407539",
+        "tester_id": "qhaysSflrXbVu8PXzAl4"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-11-14T06:03:14.996236",
+        "tester_id": "zcDCQM8eYguUEAIgJT78"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-11-14T06:11:12.890084",
+        "tester_id": "AMRv8Wf2xJbdnlaD3E72"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-11-25T05:27:22.070536",
+        "tester_id": "A6XUeazRzyW8Ivy0JMtx"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-11-25T05:30:45.952240",
+        "tester_id": "OMKDupArao6RZh20FiK1"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-11-25T05:30:49.043431",
+        "tester_id": "OMKDupArao6RZh20FiK1"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-11-25T05:33:29.231556",
+        "tester_id": "lqNimYSPTkO9chZWDTpH"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-11-25T06:05:16.769195",
+        "tester_id": "DQXyi3m9lRMs7wgCeq4I"
+      }
+    ],
+    "created_at": "2025-10-21T07:39:37.982166+00:00",
+    "tested_at": "2025-11-25T06:05:16.769195",
+    "test_case_id": "PM5kWhlCO4zw1A39MxRk",
+    "tester_id": "nUxRytJPYUzKpzQ27tuj",
+    "actual_result": null,
+    "status": "passed",
+    "test_run_id": "NhMxNNwOtptzA1rmE7jK",
+    "defect_url": null,
+    "comment": "",
+    "updated_at": "2025-11-25T06:05:16.769212+00:00",
+    "execution_time": null,
+    "id": "3CRx7ggC5Y6cJjIjS6cf"
+  },
+  {
+    "history": [
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-11-14T06:05:38.334579",
+        "tester_id": "zMli8y2ScuqSNESPT88H"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-11-14T06:11:17.598886",
+        "tester_id": "AMRv8Wf2xJbdnlaD3E72"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-11-25T05:30:06.213468",
+        "tester_id": "A6XUeazRzyW8Ivy0JMtx"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-12-09T06:36:37.578707",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-12-10T02:13:24.535486",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      }
+    ],
+    "created_at": "2025-11-14T06:05:38.334597+00:00",
+    "tested_at": "2025-12-10T02:13:24.535486",
+    "actual_result": null,
+    "tester_id": "zMli8y2ScuqSNESPT88H",
+    "test_case_id": "of0l8YNGJUJvs0x8QqWd",
+    "status": "passed",
+    "test_run_id": "NhMxNNwOtptzA1rmE7jK",
+    "comment": "",
+    "defect_url": null,
+    "updated_at": "2025-12-10T02:13:24.535508+00:00",
+    "execution_time": null,
+    "id": "5XDkwl61ikub2mdj7B5x"
+  },
+  {
+    "history": [
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-12-11T01:18:50.228070",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      }
+    ],
+    "created_at": "2025-12-11T01:18:50.228086+00:00",
+    "tested_at": "2025-12-11T01:18:50.228070",
+    "test_case_id": "5fwahpBuMun8rrwuzR42",
+    "tester_id": "nUxRytJPYUzKpzQ27tuj",
+    "actual_result": null,
+    "status": "passed",
+    "test_run_id": "NhMxNNwOtptzA1rmE7jK",
+    "defect_url": null,
+    "comment": "",
+    "updated_at": "2025-12-11T01:18:50.228101+00:00",
+    "execution_time": null,
+    "id": "NuJP2oWHLkDm9JDQFg55"
+  },
+  {
+    "history": [
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-10-21T07:54:05.115263",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-10-21T07:54:07.248606",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-10-21T07:54:09.089374",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-10-21T07:54:17.363575",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-10-21T07:54:19.954735",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-10-21T23:11:32.223519",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "skipped",
+        "comment": "",
+        "tested_at": "2025-10-21T23:11:49.372426",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "skipped",
+        "comment": "",
+        "tested_at": "2025-10-21T23:16:39.857543",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "skipped",
+        "comment": "",
+        "tested_at": "2025-10-21T23:16:41.860946",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-10-21T23:22:11.165322",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-10-28T06:26:18.111811",
+        "tester_id": "qhaysSflrXbVu8PXzAl4"
+      },
+      {
+        "status": "blocked",
+        "comment": null,
+        "tested_at": "2025-10-31T05:21:37.841305",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-11-14T06:03:18.039636",
+        "tester_id": "zcDCQM8eYguUEAIgJT78"
+      },
+      {
+        "status": "blocked",
+        "comment": "",
+        "tested_at": "2025-11-14T06:11:08.668863",
+        "tester_id": "AMRv8Wf2xJbdnlaD3E72"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-11-14T06:11:19.486933",
+        "tester_id": "AMRv8Wf2xJbdnlaD3E72"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-11-25T05:30:03.068114",
+        "tester_id": "A6XUeazRzyW8Ivy0JMtx"
+      }
+    ],
+    "created_at": "2025-10-21T07:39:42.130263+00:00",
+    "tested_at": "2025-11-25T05:30:03.068114",
+    "test_case_id": "xvG7jcpA3pN6ESJoLPlk",
+    "tester_id": "nUxRytJPYUzKpzQ27tuj",
+    "actual_result": null,
+    "status": "passed",
+    "test_run_id": "NhMxNNwOtptzA1rmE7jK",
+    "defect_url": null,
+    "comment": "",
+    "updated_at": "2025-11-25T05:30:03.068131+00:00",
+    "execution_time": null,
+    "id": "ObMHqq9swrQaoWFQNZvQ"
+  },
+  {
+    "history": [
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-11-14T06:12:03.549167",
+        "tester_id": "AMRv8Wf2xJbdnlaD3E72"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-11-14T06:41:08.670325",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-11-14T06:41:09.955246",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-11-25T06:09:13.447309",
+        "tester_id": "mYCqbpg7L7Y0KdUvLhip"
+      }
+    ],
+    "created_at": "2025-11-14T06:12:03.549188+00:00",
+    "tested_at": "2025-11-25T06:09:13.447309",
+    "actual_result": null,
+    "tester_id": "AMRv8Wf2xJbdnlaD3E72",
+    "test_case_id": "PM5kWhlCO4zw1A39MxRk",
+    "status": "passed",
+    "test_run_id": "tTpXwvu9qFQrO1r5US7m",
+    "comment": "",
+    "defect_url": null,
+    "updated_at": "2025-11-25T06:09:13.447325+00:00",
+    "execution_time": null,
+    "id": "OfcpvK9mNyFw0O7YjpGz"
+  },
+  {
+    "history": [
+      {
+        "status": "blocked",
+        "comment": "",
+        "tested_at": "2025-11-14T06:03:21.856361",
+        "tester_id": "zcDCQM8eYguUEAIgJT78"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-11-14T06:11:15.568428",
+        "tester_id": "AMRv8Wf2xJbdnlaD3E72"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-11-25T05:30:08.570207",
+        "tester_id": "A6XUeazRzyW8Ivy0JMtx"
+      },
+      {
+        "status": "blocked",
+        "comment": "",
+        "tested_at": "2025-11-25T05:33:44.013922",
+        "tester_id": "A6XUeazRzyW8Ivy0JMtx"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-11-25T05:33:47.146177",
+        "tester_id": "A6XUeazRzyW8Ivy0JMtx"
+      },
+      {
+        "status": "skipped",
+        "comment": "",
+        "tested_at": "2025-11-25T05:33:50.057176",
+        "tester_id": "A6XUeazRzyW8Ivy0JMtx"
+      },
+      {
+        "status": "blocked",
+        "comment": "",
+        "tested_at": "2025-11-25T05:33:54.367297",
+        "tester_id": "A6XUeazRzyW8Ivy0JMtx"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-12-08T07:48:42.794973",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "blocked",
+        "comment": "",
+        "tested_at": "2025-12-08T07:48:46.451240",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-12-08T07:48:52.419366",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-12-10T02:13:26.426784",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      }
+    ],
+    "created_at": "2025-11-14T06:03:21.856379+00:00",
+    "tested_at": "2025-12-10T02:13:26.426784",
+    "actual_result": null,
+    "tester_id": "zcDCQM8eYguUEAIgJT78",
+    "test_case_id": "W2xLP23HAE3O2pSyy5Yt",
+    "status": "passed",
+    "test_run_id": "NhMxNNwOtptzA1rmE7jK",
+    "comment": "",
+    "defect_url": null,
+    "updated_at": "2025-12-10T02:13:26.426802+00:00",
+    "execution_time": null,
+    "id": "WKp76kA3joj74EgTpMH8"
+  },
+  {
+    "history": [
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-11-14T06:12:13.906782",
+        "tester_id": "AMRv8Wf2xJbdnlaD3E72"
+      },
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-11-25T05:31:15.462178",
+        "tester_id": "A6XUeazRzyW8Ivy0JMtx"
+      },
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-11-25T06:09:15.884018",
+        "tester_id": "mYCqbpg7L7Y0KdUvLhip"
+      }
+    ],
+    "created_at": "2025-11-14T06:12:13.906796+00:00",
+    "tested_at": "2025-11-25T06:09:15.884018",
+    "actual_result": null,
+    "tester_id": "AMRv8Wf2xJbdnlaD3E72",
+    "test_case_id": "xvG7jcpA3pN6ESJoLPlk",
+    "status": "failed",
+    "test_run_id": "tTpXwvu9qFQrO1r5US7m",
+    "comment": "",
+    "defect_url": null,
+    "updated_at": "2025-11-25T06:09:15.884032+00:00",
+    "execution_time": null,
+    "id": "j0KU7sKyMIX0eODNTy96"
+  },
+  {
+    "history": [
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-12-11T01:18:53.276683",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      }
+    ],
+    "created_at": "2025-12-11T01:18:53.276695+00:00",
+    "tested_at": "2025-12-11T01:18:53.276683",
+    "test_case_id": "9poC0UqN18WfezPrN3Ww",
+    "tester_id": "nUxRytJPYUzKpzQ27tuj",
+    "actual_result": null,
+    "status": "failed",
+    "test_run_id": "NhMxNNwOtptzA1rmE7jK",
+    "defect_url": null,
+    "comment": "",
+    "updated_at": "2025-12-11T01:18:53.276698+00:00",
+    "execution_time": null,
+    "id": "qMC2jhHtYKZb9eWhXFbT"
+  },
+  {
+    "history": [
+      {
+        "status": "failed",
+        "comment": "",
+        "tested_at": "2025-12-18T00:20:14.981571",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      }
+    ],
+    "created_at": "2025-12-18T00:20:14.981586+00:00",
+    "tested_at": "2025-12-18T00:20:14.981571",
+    "actual_result": null,
+    "tester_id": "nUxRytJPYUzKpzQ27tuj",
+    "test_case_id": "8vK8ib2ayoMIXsXJNR4p",
+    "status": "failed",
+    "test_run_id": "NhMxNNwOtptzA1rmE7jK",
+    "defect_url": null,
+    "comment": "",
+    "updated_at": "2025-12-18T00:20:14.981587+00:00",
+    "execution_time": null,
+    "id": "sca1I9vGK3X7KbQVzFtV"
+  },
+  {
+    "history": [
+      {
+        "status": "passed",
+        "comment": "",
+        "tested_at": "2025-12-11T01:18:49.140899",
+        "tester_id": "nUxRytJPYUzKpzQ27tuj"
+      }
+    ],
+    "created_at": "2025-12-11T01:18:49.140914+00:00",
+    "tested_at": "2025-12-11T01:18:49.140899",
+    "test_case_id": "2g7mLXICLwRbVkPbKUvU",
+    "tester_id": "nUxRytJPYUzKpzQ27tuj",
+    "actual_result": null,
+    "status": "passed",
+    "test_run_id": "NhMxNNwOtptzA1rmE7jK",
+    "defect_url": null,
+    "comment": "",
+    "updated_at": "2025-12-11T01:18:49.140916+00:00",
+    "execution_time": null,
+    "id": "vja0ll8Da00FWV8r1qOD"
+  }
+]

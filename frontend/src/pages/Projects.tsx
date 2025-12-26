@@ -15,12 +15,12 @@ export default function Projects() {
   const queryClient = useQueryClient()
 
   const { data: projects, isLoading } = useQuery('projects', async () => {
-    const response = await api.get('/projects/')
+    const response = await api.get('/projects')
     return response.data
   })
 
   const createMutation = useMutation(
-    (data: any) => api.post('/projects/', data),
+    (data: any) => api.post('/projects', data),
     {
       onSuccess: () => {
         queryClient.invalidateQueries('projects')

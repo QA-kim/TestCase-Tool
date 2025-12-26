@@ -1,0 +1,25 @@
+{
+  "backup_timestamp": "20251226_104348",
+  "backup_date": "2025-12-26T10:43:49.234501",
+  "total_documents": 145,
+  "collections": [
+    "users",
+    "projects",
+    "testfolders",
+    "testcases",
+    "testcase_history",
+    "testruns",
+    "testresults",
+    "issues"
+  ],
+  "collection_counts": {
+    "users": 35,
+    "projects": 2,
+    "testfolders": 5,
+    "testcases": 16,
+    "testcase_history": 61,
+    "testruns": 3,
+    "testresults": 10,
+    "issues": 13
+  }
+}

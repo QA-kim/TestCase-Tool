@@ -67,15 +67,15 @@ export default function IssueTracker() {
   // Fetch data
   const { data: issues, isLoading } = useQuery('all-issues', () => issuesApi.list())
   const { data: projects } = useQuery('projects', async () => {
-    const response = await api.get('/projects/')
+    const response = await api.get('/projects')
     return response.data
   })
   const { data: testruns } = useQuery('testruns', async () => {
-    const response = await api.get('/testruns/')
+    const response = await api.get('/testruns')
     return response.data
   })
   const { data: users } = useQuery('users', async () => {
-    const response = await api.get('/users/')
+    const response = await api.get('/users')
     return response.data
   })
 
@@ -447,7 +447,7 @@ function ListView({
 }) {
   const navigate = useNavigate()
   const { data: users } = useQuery('users', async () => {
-    const response = await api.get('/users/')
+    const response = await api.get('/users')
     return response.data
   })
 

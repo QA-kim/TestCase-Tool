@@ -64,12 +64,12 @@ export default function TestCases() {
   const [isDragging, setIsDragging] = useState(false)
 
   const { data: projects } = useQuery('projects', async () => {
-    const response = await api.get('/projects/')
+    const response = await api.get('/projects')
     return response.data
   })
 
   const { data: testcases, isLoading } = useQuery('testcases', async () => {
-    const response = await api.get('/testcases/')
+    const response = await api.get('/testcases')
     return response.data
   })
 
@@ -82,7 +82,7 @@ export default function TestCases() {
   )
 
   const createMutation = useMutation(
-    (data: any) => api.post('/testcases/', data),
+    (data: any) => api.post('/testcases', data),
     {
       onSuccess: () => {
         queryClient.invalidateQueries('testcases')
