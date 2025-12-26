@@ -39,10 +39,6 @@ def create_testresult(
     result_data['executed_by'] = current_user['id']
     result_data['executed_at'] = datetime.utcnow().isoformat()
 
-    # Remove fields that don't exist in Supabase schema
-    result_data.pop('defect_url', None)
-    result_data.pop('execution_time', None)
-
     result = testresults_collection.create(result_data)
     return result
 
@@ -80,10 +76,6 @@ def update_testresult(
     # Use Supabase field names
     update_data['executed_by'] = current_user['id']
     update_data['executed_at'] = datetime.utcnow().isoformat()
-
-    # Remove fields that don't exist in Supabase schema
-    update_data.pop('defect_url', None)
-    update_data.pop('execution_time', None)
 
     testresults_collection.update(result_id, update_data)
 
