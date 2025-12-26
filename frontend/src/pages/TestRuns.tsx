@@ -29,25 +29,28 @@ export default function TestRuns() {
   const [filterEnvironment, setFilterEnvironment] = useState('')
   const [showFilters, setShowFilters] = useState(false)
 
+  // Test case search in modal
+  const [testCaseSearch, setTestCaseSearch] = useState('')
+
   const queryClient = useQueryClient()
 
   const { data: projects } = useQuery('projects', async () => {
-    const response = await api.get('/projects/')
+    const response = await api.get('/projects')
     return response.data
   })
 
   const { data: testcases } = useQuery('testcases', async () => {
-    const response = await api.get('/testcases/')
+    const response = await api.get('/testcases')
     return response.data
   })
 
   const { data: testruns, isLoading } = useQuery('testruns', async () => {
-    const response = await api.get('/testruns/')
+    const response = await api.get('/testruns')
     return response.data
   })
 
   const createMutation = useMutation(
-    (data: any) => api.post('/testruns/', data),
+    (data: any) => api.post('/testruns', data),
     {
       onSuccess: () => {
         queryClient.invalidateQueries('testruns')
@@ -79,6 +82,7 @@ export default function TestRuns() {
     setOpen(false)
     setEditMode(false)
     setEditId(null)
+    setTestCaseSearch('')
     setFormData({
       name: '',
       description: '',
@@ -145,11 +149,23 @@ export default function TestRuns() {
     return labels[status] || status
   }
 
-  // Filter test cases by selected project
+  // Filter test cases by selected project and search query
   const filteredTestCases = useMemo(() => {
     if (!testcases) return []
-    return testcases.filter((tc: any) => tc.project_id === formData.project_id)
-  }, [testcases, formData.project_id])
+    let filtered = testcases.filter((tc: any) => tc.project_id === formData.project_id)
+
+    // Apply search filter
+    if (testCaseSearch) {
+      const query = testCaseSearch.toLowerCase()
+      filtered = filtered.filter((tc: any) => {
+        const matchesTitle = tc.title?.toLowerCase().includes(query)
+        const matchesDescription = tc.description?.toLowerCase().includes(query)
+        return matchesTitle || matchesDescription
+      })
+    }
+
+    return filtered
+  }, [testcases, formData.project_id, testCaseSearch])
 
   // Advanced filtering for test runs list
   const filteredTestruns = useMemo(() => {
@@ -489,10 +505,10 @@ export default function TestRuns() {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-                <div className="px-6 py-4 grid grid-cols-2 gap-4 overflow-y-auto flex-1">
-                  {/* Left Column */}
-                  <div className="space-y-3">
+              <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                <div className="px-6 py-4 flex gap-4 flex-1 overflow-hidden">
+                  {/* Left Column - Scrollable */}
+                  <div className="flex-1 space-y-3 overflow-y-auto pr-2">
                     {/* Name */}
                     <div>
                       <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -601,38 +617,54 @@ export default function TestRuns() {
                     </div>
                   </div>
 
-                  {/* Right Column - Test Cases */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-sm font-medium text-gray-700">
-                        테스트 케이스 선택
-                        {formData.test_case_ids.length > 0 && (
-                          <span className="ml-2 text-sm text-primary-600 font-semibold">
-                            ({formData.test_case_ids.length}개 선택됨)
-                          </span>
+                  {/* Right Column - Test Cases with Independent Scroll */}
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    {/* Header - Fixed */}
+                    <div className="flex-shrink-0 space-y-2 mb-2">
+                      {/* Title and Buttons */}
+                      <div className="flex items-center justify-between">
+                        <label className="block text-sm font-medium text-gray-700">
+                          테스트 케이스 선택
+                          {formData.test_case_ids.length > 0 && (
+                            <span className="ml-2 text-sm text-primary-600 font-semibold">
+                              ({formData.test_case_ids.length}개 선택됨)
+                            </span>
+                          )}
+                        </label>
+                        {filteredTestCases.length > 0 && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={handleSelectAll}
+                              className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                            >
+                              전체 선택
+                            </button>
+                            <span className="text-gray-400">|</span>
+                            <button
+                              type="button"
+                              onClick={handleDeselectAll}
+                              className="text-xs text-gray-600 hover:text-gray-700 font-medium"
+                            >
+                              선택 해제
+                            </button>
+                          </div>
                         )}
-                      </label>
-                      {filteredTestCases.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={handleSelectAll}
-                            className="text-xs text-primary-600 hover:text-primary-700 font-medium"
-                          >
-                            전체 선택
-                          </button>
-                          <span className="text-gray-400">|</span>
-                          <button
-                            type="button"
-                            onClick={handleDeselectAll}
-                            className="text-xs text-gray-600 hover:text-gray-700 font-medium"
-                          >
-                            선택 해제
-                          </button>
-                        </div>
-                      )}
+                      </div>
+                      {/* Search Input */}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="테스트 케이스 검색..."
+                          value={testCaseSearch}
+                          onChange={(e) => setTestCaseSearch(e.target.value)}
+                          className="w-full px-3 py-2 pl-9 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                        />
+                        <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" />
+                      </div>
                     </div>
-                    <div className="border border-gray-300 rounded-lg p-3 h-[calc(100%-2.5rem)] overflow-y-auto bg-gray-50">
+                    {/* Test Cases List - Scrollable */}
+                    <div className="border border-gray-300 rounded-lg p-3 flex-1 overflow-y-auto bg-gray-50">
                       {filteredTestCases.length === 0 ? (
                         <p className="text-sm text-gray-500 text-center py-8">
                           선택한 프로젝트에 테스트 케이스가 없습니다.

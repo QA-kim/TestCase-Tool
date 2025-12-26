@@ -61,3 +61,4 @@ build/
 # Temp
 tmp/
 temp/
+backend/serviceAccountKey.json

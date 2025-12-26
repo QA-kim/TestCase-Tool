@@ -21,7 +21,7 @@ export default function ProjectDetail() {
   })
 
   const { data: testcases } = useQuery('testcases', async () => {
-    const response = await api.get('/testcases/')
+    const response = await api.get('/testcases')
     return response.data
   })
 

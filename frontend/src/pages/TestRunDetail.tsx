@@ -40,7 +40,7 @@ export default function TestRunDetail() {
   })
 
   const { data: testcases } = useQuery(['testcases'], async () => {
-    const response = await api.get('/testcases/')
+    const response = await api.get('/testcases')
     return response.data
   })
 
@@ -50,7 +50,7 @@ export default function TestRunDetail() {
   })
 
   const { data: users } = useQuery('users', async () => {
-    const response = await api.get('/users/')
+    const response = await api.get('/users')
     return response.data
   })
 

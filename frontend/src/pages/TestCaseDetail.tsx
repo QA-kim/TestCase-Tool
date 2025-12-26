@@ -27,7 +27,7 @@ export default function TestCaseDetail() {
   )
 
   const duplicateMutation = useMutation(
-    (data: any) => api.post('/testcases/', data),
+    (data: any) => api.post('/testcases', data),
     {
       onSuccess: () => {
         queryClient.invalidateQueries('testcases')

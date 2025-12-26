@@ -47,7 +47,18 @@
       "Bash(ls:*)",
       "Bash(npm uninstall:*)",
       "Bash(git checkout:*)",
-      "Bash(do sed -i '' 's/from app\\.db\\.firestore import/from app.db.supabase import/g' \"$file\")"
+      "Bash(do sed -i '' 's/from app\\.db\\.firestore import/from app.db.supabase import/g' \"$file\")",
+      "Bash(git ls-tree:*)",
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(pip3 uninstall:*)",
+      "Bash(./venv/bin/python:*)",
+      "Bash(./backend/venv/bin/python:*)",
+      "Bash(venv/bin/python:*)",
+      "Bash(export SUPABASE_URL=\"https://eclniwdhzpkzhbcrncvc.supabase.co\")",
+      "Bash(export SUPABASE_SERVICE_KEY:*)",
+      "Bash(backend/venv/bin/python:*)",
+      "Bash(do echo \"=== 시도 $i ===\")"
     ],
     "deny": [],
     "ask": []

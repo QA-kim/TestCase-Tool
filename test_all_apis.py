@@ -13,18 +13,10 @@ import sys
 BASE_URL = "https://testcase-tool.onrender.com/api/v1"
 # BASE_URL = "http://localhost:8000/api/v1"  # For local testing
 
-# Test credentials - will be created if not exists
-TEST_USER_REGISTER = {
-    "email": "apitest@tcms.com",
-    "username": "apitest",
-    "password": "Test123!@#",
-    "full_name": "API Test User",
-    "role": "admin"  # This will be set to viewer by backend, only for testing
-}
-
-TEST_USER_LOGIN = {
-    "username": "apitest",
-    "password": "Test123!@#"
+# Test credentials - use existing admin account
+ADMIN_LOGIN = {
+    "username": "admin",
+    "password": "admin123!"
 }
 
 # Colors for output
@@ -126,33 +118,13 @@ def test_auth():
     global token
     print_header("Testing Authentication")
 
-    # 1. Register test user (if not exists)
-    print_info("Testing user registration...")
-    url = f"{BASE_URL}/auth/register"
-    try:
-        response = requests.post(
-            url,
-            json=TEST_USER_REGISTER,
-            headers={"Content-Type": "application/json"},
-            timeout=30
-        )
-
-        if response.status_code == 200:
-            print_success(f"User registration successful")
-        elif response.status_code == 400 and "이미 존재" in response.text:
-            print_info("Test user already exists - skipping registration")
-        else:
-            print_warning(f"Registration failed (status {response.status_code}) - will try login anyway")
-    except Exception as e:
-        print_warning(f"Registration request failed: {e} - will try login anyway")
-
-    # 2. Login (uses form-data, not JSON)
-    print_info("Testing login...")
+    # Login with admin account (uses form-data, not JSON)
+    print_info("Testing admin login...")
     url = f"{BASE_URL}/auth/login"
     try:
         response = requests.post(
             url,
-            data=TEST_USER_LOGIN,  # form-data for OAuth2
+            data=ADMIN_LOGIN,  # form-data for OAuth2
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             timeout=30
         )
