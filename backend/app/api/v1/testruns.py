@@ -114,7 +114,7 @@ def get_testrun_results(
             detail="Test run not found"
         )
 
-    results = testresults_collection.query('test_run_id', '==', testrun_id)
+    results = testresults_collection.query('testrun_id', '==', testrun_id)
     return results
 
 

@@ -118,7 +118,7 @@ def get_project_statistics(
     # 테스트 결과 수집 (모든 테스트런의 결과)
     all_results = []
     for tr in testruns:
-        results = testresults_collection.query('test_run_id', '==', tr['id'])
+        results = testresults_collection.query('testrun_id', '==', tr['id'])
         all_results.extend(results)
 
     # 상태별 카운트
@@ -161,11 +161,12 @@ def get_testrun_statistics(
         )
 
     # 테스트 결과 조회
-    results = testresults_collection.query('test_run_id', '==', testrun_id)
+    results = testresults_collection.query('testrun_id', '==', testrun_id)
 
-    # 테스트 케이스 수
-    test_case_ids = testrun.get('test_case_ids', [])
-    total_tests = len(test_case_ids)
+    # 테스트 케이스 수 (test_case_ids는 Firestore에만 존재, Supabase에서는 testrun_testcases 테이블 사용)
+    # Supabase에서는 testrun_testcases junction table을 통해 테스트 케이스 수를 계산해야 함
+    # 현재는 결과 수로 대체
+    total_tests = len(results)
 
     # 상태별 카운트
     tested_count = sum(1 for r in results if r.get('status') != 'untested')
@@ -243,7 +244,7 @@ def get_trend_statistics(
         date_key = created_at.strftime(date_format)
 
         # 해당 테스트런의 결과 조회
-        results = testresults_collection.query('test_run_id', '==', tr['id'])
+        results = testresults_collection.query('testrun_id', '==', tr['id'])
 
         for r in results:
             status = r.get('status')
@@ -321,7 +322,7 @@ def get_dashboard_statistics(
 
     for r in all_results:
         if r.get('status') == 'failed':
-            testcase_id = r.get('test_case_id')
+            testcase_id = r.get('testcase_id')  # Supabase uses testcase_id
             if testcase_id:
                 testcase_failures[testcase_id] += 1
 
