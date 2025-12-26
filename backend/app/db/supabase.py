@@ -5,6 +5,7 @@ import os
 from typing import Dict, List, Optional, Any
 from supabase import create_client, Client
 from datetime import datetime
+import httpx
 
 # Supabase configuration
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
@@ -27,18 +28,27 @@ print(f"   URL: {SUPABASE_URL[:30]}... (length: {len(SUPABASE_URL)})")
 print(f"   KEY: {SUPABASE_KEY[:20]}... (length: {len(SUPABASE_KEY)})")
 print(f"   KEY starts with 'eyJ': {SUPABASE_KEY.startswith('eyJ')}")
 
-# Create Supabase client with HTTP/1.1 (more stable for Render.com)
+# Create custom HTTP client without HTTP/2 to avoid connection issues
 try:
-    # Create client with custom options to avoid HTTP/2 issues
+    # Create httpx client with HTTP/1.1 only (no HTTP/2)
+    http_client = httpx.Client(
+        http2=False,  # Disable HTTP/2
+        timeout=httpx.Timeout(30.0),
+        limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
+        headers={
+            "Connection": "close"
+        }
+    )
+    print("✅ HTTP client created (HTTP/1.1 only)")
+
+    # Create Supabase client with custom HTTP client
     supabase: Client = create_client(
         SUPABASE_URL,
         SUPABASE_KEY,
         options={
             "auto_refresh_token": False,
             "persist_session": False,
-            "headers": {
-                "Connection": "close"  # Prevent connection reuse issues
-            }
+            "http_client": http_client
         }
     )
     print("✅ Supabase client created successfully")
