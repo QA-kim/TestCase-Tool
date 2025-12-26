@@ -13,10 +13,18 @@ import sys
 BASE_URL = "https://testcase-tool.onrender.com/api/v1"
 # BASE_URL = "http://localhost:8000/api/v1"  # For local testing
 
-# Test credentials
-ADMIN_CREDENTIALS = {
-    "username": "admin",
-    "password": "admin123"
+# Test credentials - will be created if not exists
+TEST_USER_REGISTER = {
+    "email": "apitest@tcms.com",
+    "username": "apitest",
+    "password": "Test123!@#",
+    "full_name": "API Test User",
+    "role": "admin"  # This will be set to viewer by backend, only for testing
+}
+
+TEST_USER_LOGIN = {
+    "username": "apitest",
+    "password": "Test123!@#"
 }
 
 # Colors for output
@@ -118,24 +126,54 @@ def test_auth():
     global token
     print_header("Testing Authentication")
 
-    # 1. Login
-    print_info("Testing login...")
-    success, response = make_request(
-        "POST",
-        "/auth/login",
-        data=ADMIN_CREDENTIALS,
-        use_auth=False
-    )
+    # 1. Register test user (if not exists)
+    print_info("Testing user registration...")
+    url = f"{BASE_URL}/auth/register"
+    try:
+        response = requests.post(
+            url,
+            json=TEST_USER_REGISTER,
+            headers={"Content-Type": "application/json"},
+            timeout=30
+        )
 
-    if success and response and "access_token" in response:
-        token = response["access_token"]
-        print_success(f"Login successful - Token: {token[:20]}...")
-        test_data["user_id"] = response.get("user_id")
-    else:
-        print_error("Login failed - Cannot continue tests")
+        if response.status_code == 200:
+            print_success(f"User registration successful")
+        elif response.status_code == 400 and "이미 존재" in response.text:
+            print_info("Test user already exists - skipping registration")
+        else:
+            print_warning(f"Registration failed (status {response.status_code}) - will try login anyway")
+    except Exception as e:
+        print_warning(f"Registration request failed: {e} - will try login anyway")
+
+    # 2. Login (uses form-data, not JSON)
+    print_info("Testing login...")
+    url = f"{BASE_URL}/auth/login"
+    try:
+        response = requests.post(
+            url,
+            data=TEST_USER_LOGIN,  # form-data for OAuth2
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            if "access_token" in data:
+                token = data["access_token"]
+                print_success(f"Login successful - Token: {token[:20]}...")
+                test_data["user_id"] = data.get("user_id")
+            else:
+                print_error("Login response missing access_token")
+                sys.exit(1)
+        else:
+            print_error(f"Login failed - Status {response.status_code}: {response.text[:200]}")
+            sys.exit(1)
+    except Exception as e:
+        print_error(f"Login request failed: {e}")
         sys.exit(1)
 
-    # 2. Get current user
+    # 3. Get current user
     print_info("Testing get current user...")
     success, response = make_request("GET", "/auth/me")
     if success and response:
