@@ -76,8 +76,7 @@ class TestResultBase(BaseModel):
     status: TestResultStatus = TestResultStatus.UNTESTED
     actual_result: Optional[str] = None
     comment: Optional[str] = None
-    defect_url: Optional[str] = None
-    execution_time: Optional[int] = None
+    # defect_url and execution_time removed - not in Supabase schema
 
 
 class TestResultCreate(TestResultBase):
@@ -90,8 +89,7 @@ class TestResultUpdate(BaseModel):
     status: Optional[TestResultStatus] = None
     actual_result: Optional[str] = None
     comment: Optional[str] = None
-    defect_url: Optional[str] = None
-    execution_time: Optional[int] = None
+    # defect_url and execution_time removed - not in Supabase schema
 
 
 class TestResultHistory(BaseModel):
