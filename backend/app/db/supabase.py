@@ -163,10 +163,12 @@ class SupabaseCollection:
 
     def create(self, data: Dict) -> Dict:
         """Create a new document"""
-        # Remove id if present (will be auto-generated)
+        import uuid
+
+        # Generate UUID if id is missing or empty
         data_copy = data.copy()
-        if 'id' in data_copy and not data_copy['id']:
-            del data_copy['id']
+        if 'id' not in data_copy or not data_copy['id']:
+            data_copy['id'] = str(uuid.uuid4())
 
         # Set timestamps
         now = datetime.utcnow().isoformat()
