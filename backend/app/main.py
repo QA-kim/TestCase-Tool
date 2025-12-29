@@ -1,11 +1,13 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.api.v1 import auth, projects, testcases, testruns, testresults, users, folders, statistics, issues
 from app.middleware import SecurityHeadersMiddleware
+import traceback
 
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -19,6 +21,32 @@ app = FastAPI(
 # Add rate limiter to app state
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Global exception handler to ensure CORS headers on all errors
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Handle all exceptions and ensure CORS headers are present"""
+    # Log the error
+    print(f"❌ Unhandled exception: {type(exc).__name__}: {exc}")
+    traceback.print_exc()
+
+    # Create error response with CORS headers
+    origin = request.headers.get("origin", "*")
+
+    response = JSONResponse(
+        status_code=500,
+        content={
+            "detail": "내부 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+            "error_type": type(exc).__name__
+        }
+    )
+
+    # Add CORS headers manually
+    response.headers["Access-Control-Allow-Origin"] = origin
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Expose-Headers"] = "*"
+
+    return response
 
 # Security headers middleware (add first)
 app.add_middleware(SecurityHeadersMiddleware)
@@ -47,12 +75,12 @@ app.add_middleware(
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
     """Apply global rate limiting to protect against abuse"""
-    # Skip rate limiting for health check and root
-    if request.url.path in ["/", "/health"]:
+    # Skip rate limiting for health check, root, and OPTIONS requests
+    if request.url.path in ["/", "/health"] or request.method == "OPTIONS":
         return await call_next(request)
 
-    # Apply default rate limit: 100 requests per minute per IP
-    # This protects against basic DoS attacks
+    # Apply default rate limit: 300 requests per minute per IP
+    # This protects against basic DoS attacks while allowing normal usage
     try:
         # Check if the request exceeds the rate limit
         # Note: Individual endpoints may have stricter limits
@@ -75,14 +103,20 @@ async def rate_limit_middleware(request: Request, call_next):
         while requests and requests[0] < now - 60:
             requests.popleft()
 
-        # Check if limit exceeded
-        if len(requests) >= 100:
-            return Response(
+        # Check if limit exceeded (increased to 300 to allow normal UI usage)
+        if len(requests) >= 300:
+            # Add CORS headers to error response
+            response = Response(
                 content='{"detail":"요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해주세요."}',
                 status_code=429,
                 media_type="application/json",
-                headers={"Retry-After": "60"}
+                headers={
+                    "Retry-After": "60",
+                    "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
+                    "Access-Control-Allow-Credentials": "true",
+                }
             )
+            return response
 
         # Add current request
         requests.append(now)
