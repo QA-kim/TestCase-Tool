@@ -34,6 +34,15 @@ def create_issue(
 
     issue_data = issue_in.dict()  # Pydantic v1 uses .dict()
     issue_data['created_by'] = current_user['id']
+
+    # Convert empty strings to None for foreign key fields
+    if issue_data.get('testcase_id') == '':
+        issue_data['testcase_id'] = None
+    if issue_data.get('testrun_id') == '':
+        issue_data['testrun_id'] = None
+    if issue_data.get('assigned_to') == '':
+        issue_data['assigned_to'] = None
+
     issue = issues_collection.create(issue_data)
     return issue
 
@@ -109,6 +118,15 @@ def update_issue(
             )
 
     update_data = issue_in.dict(exclude_unset=True)  # Pydantic v1 uses .dict()
+
+    # Convert empty strings to None for foreign key fields
+    if update_data.get('testcase_id') == '':
+        update_data['testcase_id'] = None
+    if update_data.get('testrun_id') == '':
+        update_data['testrun_id'] = None
+    if update_data.get('assigned_to') == '':
+        update_data['assigned_to'] = None
+
     issues_collection.update(issue_id, update_data)
 
     # Return updated issue
