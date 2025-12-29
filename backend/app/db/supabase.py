@@ -28,20 +28,17 @@ print(f"   URL: {SUPABASE_URL[:30]}... (length: {len(SUPABASE_URL)})")
 print(f"   KEY: {SUPABASE_KEY[:20]}... (length: {len(SUPABASE_KEY)})")
 print(f"   KEY starts with 'eyJ': {SUPABASE_KEY.startswith('eyJ')}")
 
-# Create custom HTTP client without HTTP/2 to avoid connection issues
+# Create Supabase client with retry configuration
 try:
-    # Create httpx client with HTTP/1.1 only (no HTTP/2)
-    http_client = httpx.Client(
-        http2=False,  # Disable HTTP/2
-        timeout=httpx.Timeout(30.0),
-        limits=httpx.Limits(max_connections=100, max_keepalive_connections=20)
-    )
-    print("✅ HTTP client created (HTTP/1.1 only)")
-
     # Create Supabase client with ClientOptions
+    # Note: Supabase SDK uses its own HTTP client internally
     options = ClientOptions(
         auto_refresh_token=False,
-        persist_session=False
+        persist_session=False,
+        headers={
+            "Connection": "keep-alive",
+            "Keep-Alive": "timeout=30, max=100"
+        }
     )
 
     supabase: Client = create_client(
@@ -69,10 +66,24 @@ class SupabaseCollection:
 
     def get(self, doc_id: str) -> Optional[Dict]:
         """Get a single document by ID"""
-        result = self.table.select("*").eq("id", doc_id).execute()
-        if result.data and len(result.data) > 0:
-            return result.data[0]
-        return None
+        import time
+        max_retries = 3
+        retry_delay = 0.5
+
+        for attempt in range(max_retries):
+            try:
+                result = self.table.select("*").eq("id", doc_id).execute()
+                if result.data and len(result.data) > 0:
+                    return result.data[0]
+                return None
+            except Exception as e:
+                error_msg = str(e).lower()
+                if attempt < max_retries - 1 and any(err in error_msg for err in ['timeout', 'connection', 'temporarily unavailable', 'resource']):
+                    print(f"⚠️  Retry {attempt + 1}/{max_retries} for get({self.table_name}, {doc_id}): {type(e).__name__}")
+                    time.sleep(retry_delay * (attempt + 1))
+                    continue
+                print(f"❌ Error in get({self.table_name}, {doc_id}): {type(e).__name__}: {e}")
+                raise
 
     def get_by_field(self, field: str, value: Any) -> Optional[Dict]:
         """Get a single document by field value"""
@@ -87,12 +98,23 @@ class SupabaseCollection:
 
     def list(self, limit: int = 100, offset: int = 0) -> List[Dict]:
         """List all documents with pagination"""
-        try:
-            result = self.table.select("*").range(offset, offset + limit - 1).execute()
-            return result.data or []
-        except Exception as e:
-            print(f"❌ Error in list({self.table_name}): {e}")
-            raise
+        import time
+        max_retries = 3
+        retry_delay = 0.5
+
+        for attempt in range(max_retries):
+            try:
+                result = self.table.select("*").range(offset, offset + limit - 1).execute()
+                return result.data or []
+            except Exception as e:
+                error_msg = str(e).lower()
+                # Retry on connection errors
+                if attempt < max_retries - 1 and any(err in error_msg for err in ['timeout', 'connection', 'temporarily unavailable', 'resource']):
+                    print(f"⚠️  Retry {attempt + 1}/{max_retries} for list({self.table_name}): {type(e).__name__}")
+                    time.sleep(retry_delay * (attempt + 1))
+                    continue
+                print(f"❌ Error in list({self.table_name}): {type(e).__name__}: {e}")
+                raise
 
     def query(self, field: str, operator: str, value: Any) -> List[Dict]:
         """Query documents by field"""
