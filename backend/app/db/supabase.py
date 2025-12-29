@@ -4,8 +4,7 @@ Supabase client configuration and helper functions
 import os
 from typing import Dict, List, Optional, Any
 from supabase import create_client, Client, ClientOptions
-from datetime import datetime
-import httpx
+from datetime import datetime, timezone
 
 # Supabase configuration
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
@@ -87,14 +86,24 @@ class SupabaseCollection:
 
     def get_by_field(self, field: str, value: Any) -> Optional[Dict]:
         """Get a single document by field value"""
-        try:
-            result = self.table.select("*").eq(field, value).execute()
-            if result.data and len(result.data) > 0:
-                return result.data[0]
-            return None
-        except Exception as e:
-            print(f"❌ Error in get_by_field({self.table_name}, {field}={value}): {e}")
-            raise
+        import time
+        max_retries = 3
+        retry_delay = 0.5
+
+        for attempt in range(max_retries):
+            try:
+                result = self.table.select("*").eq(field, value).execute()
+                if result.data and len(result.data) > 0:
+                    return result.data[0]
+                return None
+            except Exception as e:
+                error_msg = str(e).lower()
+                if attempt < max_retries - 1 and any(err in error_msg for err in ['timeout', 'connection', 'temporarily unavailable', 'resource']):
+                    print(f"⚠️  Retry {attempt + 1}/{max_retries} for get_by_field({self.table_name}, {field}): {type(e).__name__}")
+                    time.sleep(retry_delay * (attempt + 1))
+                    continue
+                print(f"❌ Error in get_by_field({self.table_name}, {field}={value}): {type(e).__name__}: {e}")
+                raise
 
     def list(self, limit: int = 100, offset: int = 0) -> List[Dict]:
         """List all documents with pagination"""
@@ -118,25 +127,39 @@ class SupabaseCollection:
 
     def query(self, field: str, operator: str, value: Any) -> List[Dict]:
         """Query documents by field"""
-        query = self.table.select("*")
+        import time
+        max_retries = 3
+        retry_delay = 0.5
 
-        if operator == "==":
-            query = query.eq(field, value)
-        elif operator == "!=":
-            query = query.neq(field, value)
-        elif operator == ">":
-            query = query.gt(field, value)
-        elif operator == ">=":
-            query = query.gte(field, value)
-        elif operator == "<":
-            query = query.lt(field, value)
-        elif operator == "<=":
-            query = query.lte(field, value)
-        elif operator == "in":
-            query = query.in_(field, value)
+        for attempt in range(max_retries):
+            try:
+                query = self.table.select("*")
 
-        result = query.execute()
-        return result.data or []
+                if operator == "==":
+                    query = query.eq(field, value)
+                elif operator == "!=":
+                    query = query.neq(field, value)
+                elif operator == ">":
+                    query = query.gt(field, value)
+                elif operator == ">=":
+                    query = query.gte(field, value)
+                elif operator == "<":
+                    query = query.lt(field, value)
+                elif operator == "<=":
+                    query = query.lte(field, value)
+                elif operator == "in":
+                    query = query.in_(field, value)
+
+                result = query.execute()
+                return result.data or []
+            except Exception as e:
+                error_msg = str(e).lower()
+                if attempt < max_retries - 1 and any(err in error_msg for err in ['timeout', 'connection', 'temporarily unavailable', 'resource']):
+                    print(f"⚠️  Retry {attempt + 1}/{max_retries} for query({self.table_name}, {field}): {type(e).__name__}")
+                    time.sleep(retry_delay * (attempt + 1))
+                    continue
+                print(f"❌ Error in query({self.table_name}, {field}={value}): {type(e).__name__}: {e}")
+                raise
 
     def create(self, data: Dict) -> Dict:
         """Create a new document"""
