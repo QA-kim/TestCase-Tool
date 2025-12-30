@@ -2,6 +2,7 @@
 Supabase client configuration and helper functions
 """
 import os
+import uuid
 from typing import Dict, List, Optional, Any
 from supabase import create_client, Client, ClientOptions
 from datetime import datetime, timezone
@@ -163,8 +164,6 @@ class SupabaseCollection:
 
     def create(self, data: Dict) -> Dict:
         """Create a new document"""
-        import uuid
-
         # Generate UUID if id is missing or empty
         data_copy = data.copy()
         if 'id' not in data_copy or not data_copy['id']:
