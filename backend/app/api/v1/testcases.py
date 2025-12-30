@@ -272,8 +272,8 @@ async def import_excel(
                     continue
 
                 # Validate test_type
-                if test_type not in ['functional', 'performance', 'security', 'usability']:
-                    errors.append(f"행 {row_num}: 테스트 유형은 functional, performance, security, usability 중 하나여야 합니다")
+                if test_type not in ['functional', 'regression', 'smoke', 'integration', 'performance', 'security']:
+                    errors.append(f"행 {row_num}: 테스트 유형은 functional, regression, smoke, integration, performance, security 중 하나여야 합니다")
                     continue
 
                 # Create test case
