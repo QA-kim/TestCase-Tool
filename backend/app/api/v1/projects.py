@@ -28,6 +28,23 @@ def create_project(
     project_data = project_in.dict()  # Pydantic v1 uses .dict()
     project_data['owner_id'] = current_user['id']
 
+    # Generate project key from name (e.g., "My Project" -> "MP")
+    # Take first letter of each word, uppercase, max 10 chars
+    words = project_in.name.strip().split()
+    key = ''.join(word[0].upper() for word in words if word)[:10]
+
+    # Ensure key is unique by appending numbers if needed
+    base_key = key
+    counter = 1
+    while True:
+        existing_key_projects = projects_collection.query('key', '==', key)
+        if not existing_key_projects:
+            break
+        key = f"{base_key}{counter}"
+        counter += 1
+
+    project_data['key'] = key
+
     project = projects_collection.create(project_data)
     return project
 

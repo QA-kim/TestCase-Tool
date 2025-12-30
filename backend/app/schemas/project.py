@@ -50,6 +50,7 @@ class ProjectUpdate(BaseModel):
 
 class ProjectInDB(ProjectBase):
     id: str  # Firestore uses string IDs
+    key: str  # Project key (auto-generated from name)
     owner_id: str  # Firestore uses string IDs
     created_at: datetime
     updated_at: datetime
