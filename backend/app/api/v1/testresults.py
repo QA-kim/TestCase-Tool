@@ -3,6 +3,7 @@ from typing import List
 
 from app.db.supabase import testresults_collection
 from app.core.security import get_current_user_firestore
+from app.core.permissions import check_write_permission
 from app.schemas.testrun import (
     TestResultCreate,
     TestResultUpdate,
@@ -32,6 +33,9 @@ def create_testresult(
     result_in: TestResultCreate,
     current_user: dict = Depends(get_current_user_firestore)
 ):
+    # Check if user has permission to create test results (viewer and developer cannot create)
+    check_write_permission(current_user, "테스트 결과")
+
     from datetime import datetime
     result_data = result_in.dict()  # Pydantic v1 uses .dict()
 
@@ -63,6 +67,9 @@ def update_testresult(
     result_in: TestResultUpdate,
     current_user: dict = Depends(get_current_user_firestore)
 ):
+    # Check if user has permission to update test results (viewer and developer cannot update)
+    check_write_permission(current_user, "테스트 결과")
+
     from datetime import datetime
     result = testresults_collection.get(result_id)
     if not result:

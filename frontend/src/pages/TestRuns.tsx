@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext'
 export default function TestRuns() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const _isAdmin = user?.role === 'admin'
+  const canWrite = user?.role === 'admin' || user?.role === 'qa_manager' || user?.role === 'qa_engineer'
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
@@ -237,25 +237,27 @@ export default function TestRuns() {
             전체 {testruns?.length || 0}개 중 {filteredTestruns?.length || 0}개 표시
           </p>
         </div>
-        <button
-          onClick={() => {
-            // Reset form and set first project as default
-            setFormData({
-              name: '',
-              description: '',
-              status: 'planned',
-              environment: '',
-              milestone: '',
-              project_id: projects?.[0]?.id || '',
-              test_case_ids: [],
-            })
-            setOpen(true)
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="font-medium">새 테스트 실행</span>
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => {
+              // Reset form and set first project as default
+              setFormData({
+                name: '',
+                description: '',
+                status: 'planned',
+                environment: '',
+                milestone: '',
+                project_id: projects?.[0]?.id || '',
+                test_case_ids: [],
+              })
+              setOpen(true)
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="font-medium">새 테스트 실행</span>
+          </button>
+        )}
       </div>
 
       {/* Search and Filters */}
@@ -390,9 +392,11 @@ export default function TestRuns() {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   생성일
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  작업
-                </th>
+                {canWrite && (
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    작업
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -455,22 +459,24 @@ export default function TestRuns() {
                     <td className="px-6 py-4 text-gray-600">
                       {new Date(testrun.created_at).toLocaleDateString('ko-KR')}
                     </td>
-                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(testrun)}
-                          className="p-2 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(testrun.id)}
-                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+                    {canWrite && (
+                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleEdit(testrun)}
+                            className="p-2 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(testrun.id)}
+                            className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -481,248 +487,244 @@ export default function TestRuns() {
 
       {/* Modal */}
       {open && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity"
-              onClick={handleClose}
-            />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 bg-opacity-50">
+          {/* Modal Container - Fixed Size */}
+          <div
+            className="bg-white rounded-lg shadow-xl w-full max-w-5xl flex flex-col"
+            style={{ height: 'calc(100vh - 4rem)', maxHeight: '900px' }}
+          >
+            {/* Header - Fixed */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {editMode ? '테스트 실행 수정' : '새 테스트 실행'}
+              </h3>
+              <button
+                onClick={handleClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-            {/* Modal */}
-            <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full h-[90vh] flex flex-col">
-              {/* Header */}
-              <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 flex-shrink-0 bg-white">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {editMode ? '테스트 실행 수정' : '새 테스트 실행'}
-                </h3>
-                <button
-                  onClick={handleClose}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-                <div className="px-6 py-4 flex gap-4 flex-1 overflow-hidden">
-                  {/* Left Column - Scrollable */}
-                  <div className="flex-1 space-y-3 overflow-y-auto pr-2">
-                    {/* Name */}
-                    <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                        테스트 실행 이름 *
-                      </label>
-                      <input
-                        id="name"
-                        type="text"
-                        required
-                        autoFocus
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                        placeholder="테스트 실행 이름을 입력하세요"
-                      />
-                    </div>
-
-                    {/* Status */}
-                    <div>
-                      <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-                        상태 *
-                      </label>
-                      <select
-                        id="status"
-                        value={formData.status}
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                      >
-                        <option value="planned">계획됨</option>
-                        <option value="in_progress">진행 중</option>
-                        <option value="completed">완료됨</option>
-                        <option value="cancelled">취소됨</option>
-                      </select>
-                    </div>
-
-                    {/* Project */}
-                    <div>
-                      <label htmlFor="project_id" className="block text-sm font-medium text-gray-700 mb-1">
-                        프로젝트 *
-                      </label>
-                      <select
-                        id="project_id"
-                        value={formData.project_id}
-                        onChange={(e) => setFormData({ ...formData, project_id: e.target.value, test_case_ids: [] })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                        required
-                      >
-                        {!formData.project_id && (
-                          <option value="">프로젝트를 선택하세요</option>
-                        )}
-                        {projects?.length === 0 ? (
-                          <option value="">프로젝트가 없습니다</option>
-                        ) : (
-                          projects?.map((project: any) => (
-                            <option key={project.id} value={project.id}>
-                              {project.name}
-                            </option>
-                          ))
-                        )}
-                      </select>
-                    </div>
-
-                    {/* Environment */}
-                    <div>
-                      <label htmlFor="environment" className="block text-sm font-medium text-gray-700 mb-1">
-                        환경
-                      </label>
-                      <input
-                        id="environment"
-                        type="text"
-                        value={formData.environment}
-                        onChange={(e) => setFormData({ ...formData, environment: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                        placeholder="예: Production, Staging"
-                      />
-                    </div>
-
-                    {/* Milestone */}
-                    <div>
-                      <label htmlFor="milestone" className="block text-sm font-medium text-gray-700 mb-1">
-                        마일스톤
-                      </label>
-                      <input
-                        id="milestone"
-                        type="text"
-                        value={formData.milestone}
-                        onChange={(e) => setFormData({ ...formData, milestone: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                        placeholder="예: v1.0.0, Sprint 5"
-                      />
-                    </div>
-
-                    {/* Description */}
-                    <div>
-                      <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                        설명
-                      </label>
-                      <textarea
-                        id="description"
-                        rows={3}
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
-                        placeholder="테스트 실행 설명을 입력하세요"
-                      />
-                    </div>
+            {/* Form - Scrollable Body */}
+            <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+              {/* Two Column Layout */}
+              <div className="flex-1 flex gap-6 px-6 py-4 overflow-hidden">
+                {/* Left Column - Form Fields (Scrollable) */}
+                <div className="w-1/2 flex flex-col space-y-4 overflow-y-auto pr-2">
+                  {/* Name */}
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                      테스트 실행 이름 *
+                    </label>
+                    <input
+                      id="name"
+                      type="text"
+                      required
+                      autoFocus
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      placeholder="테스트 실행 이름을 입력하세요"
+                    />
                   </div>
 
-                  {/* Right Column - Test Cases with Independent Scroll */}
-                  <div className="flex-1 flex flex-col overflow-hidden">
-                    {/* Header - Fixed */}
-                    <div className="flex-shrink-0 space-y-2 mb-2">
-                      {/* Title and Buttons */}
-                      <div className="flex items-center justify-between">
-                        <label className="block text-sm font-medium text-gray-700">
-                          테스트 케이스 선택
-                          {formData.test_case_ids.length > 0 && (
-                            <span className="ml-2 text-sm text-primary-600 font-semibold">
-                              ({formData.test_case_ids.length}개 선택됨)
-                            </span>
-                          )}
-                        </label>
-                        {filteredTestCases.length > 0 && (
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={handleSelectAll}
-                              className="text-xs text-primary-600 hover:text-primary-700 font-medium"
-                            >
-                              전체 선택
-                            </button>
-                            <span className="text-gray-400">|</span>
-                            <button
-                              type="button"
-                              onClick={handleDeselectAll}
-                              className="text-xs text-gray-600 hover:text-gray-700 font-medium"
-                            >
-                              선택 해제
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      {/* Search Input */}
-                      <div className="relative">
-                        <input
-                          type="text"
-                          placeholder="테스트 케이스 검색..."
-                          value={testCaseSearch}
-                          onChange={(e) => setTestCaseSearch(e.target.value)}
-                          className="w-full px-3 py-2 pl-9 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                        />
-                        <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" />
-                      </div>
-                    </div>
-                    {/* Test Cases List - Scrollable */}
-                    <div className="border border-gray-300 rounded-lg p-3 flex-1 overflow-y-auto bg-gray-50">
-                      {filteredTestCases.length === 0 ? (
-                        <p className="text-sm text-gray-500 text-center py-8">
-                          선택한 프로젝트에 테스트 케이스가 없습니다.
-                        </p>
+                  {/* Status */}
+                  <div>
+                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                      상태 *
+                    </label>
+                    <select
+                      id="status"
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    >
+                      <option value="planned">계획됨</option>
+                      <option value="in_progress">진행 중</option>
+                      <option value="completed">완료됨</option>
+                      <option value="cancelled">취소됨</option>
+                    </select>
+                  </div>
+
+                  {/* Project */}
+                  <div>
+                    <label htmlFor="project_id" className="block text-sm font-medium text-gray-700 mb-1">
+                      프로젝트 *
+                    </label>
+                    <select
+                      id="project_id"
+                      value={formData.project_id}
+                      onChange={(e) => setFormData({ ...formData, project_id: e.target.value, test_case_ids: [] })}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      required
+                    >
+                      {!formData.project_id && (
+                        <option value="">프로젝트를 선택하세요</option>
+                      )}
+                      {projects?.length === 0 ? (
+                        <option value="">프로젝트가 없습니다</option>
                       ) : (
-                        <div className="space-y-1">
-                          {filteredTestCases.map((testcase: any) => (
-                            <label
-                              key={testcase.id}
-                              className="flex items-start gap-2 p-2 rounded hover:bg-white transition-colors cursor-pointer"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={formData.test_case_ids.includes(testcase.id)}
-                                onChange={() => handleTestCaseToggle(testcase.id)}
-                                className="mt-1 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">
-                                  {testcase.title}
-                                </p>
-                                {testcase.description && (
-                                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
-                                    {testcase.description}
-                                  </p>
-                                )}
-                              </div>
-                            </label>
-                          ))}
+                        projects?.map((project: any) => (
+                          <option key={project.id} value={project.id}>
+                            {project.name}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Environment */}
+                  <div>
+                    <label htmlFor="environment" className="block text-sm font-medium text-gray-700 mb-1">
+                      환경
+                    </label>
+                    <input
+                      id="environment"
+                      type="text"
+                      value={formData.environment}
+                      onChange={(e) => setFormData({ ...formData, environment: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      placeholder="예: Production, Staging"
+                    />
+                  </div>
+
+                  {/* Milestone */}
+                  <div>
+                    <label htmlFor="milestone" className="block text-sm font-medium text-gray-700 mb-1">
+                      마일스톤
+                    </label>
+                    <input
+                      id="milestone"
+                      type="text"
+                      value={formData.milestone}
+                      onChange={(e) => setFormData({ ...formData, milestone: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      placeholder="예: v1.0.0, Sprint 5"
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                      설명
+                    </label>
+                    <textarea
+                      id="description"
+                      rows={3}
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+                      placeholder="테스트 실행 설명을 입력하세요"
+                    />
+                  </div>
+                </div>
+
+                {/* Right Column - Test Cases (Full Height with Scroll) */}
+                <div className="w-1/2 flex flex-col">
+                  {/* Header - Fixed */}
+                  <div className="flex-shrink-0 mb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        테스트 케이스 선택
+                        {formData.test_case_ids.length > 0 && (
+                          <span className="ml-2 text-sm text-primary-600 font-semibold">
+                            ({formData.test_case_ids.length}개 선택됨)
+                          </span>
+                        )}
+                      </label>
+                      {filteredTestCases.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handleSelectAll}
+                            className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                          >
+                            전체 선택
+                          </button>
+                          <span className="text-gray-400">|</span>
+                          <button
+                            type="button"
+                            onClick={handleDeselectAll}
+                            className="text-xs text-gray-600 hover:text-gray-700 font-medium"
+                          >
+                            선택 해제
+                          </button>
                         </div>
                       )}
                     </div>
+                    {/* Search Input */}
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="테스트 케이스 검색..."
+                        value={testCaseSearch}
+                        onChange={(e) => setTestCaseSearch(e.target.value)}
+                        className="w-full px-3 py-2 pl-9 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      />
+                      <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" />
+                    </div>
+                  </div>
+
+                  {/* Test Cases List - Scrollable (takes remaining height) */}
+                  <div className="flex-1 border border-gray-300 rounded-lg p-3 overflow-y-auto bg-gray-50">
+                    {filteredTestCases.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-8">
+                        선택한 프로젝트에 테스트 케이스가 없습니다.
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        {filteredTestCases.map((testcase: any) => (
+                          <label
+                            key={testcase.id}
+                            className="flex items-start gap-2 p-2 rounded hover:bg-white transition-colors cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.test_case_ids.includes(testcase.id)}
+                              onChange={() => handleTestCaseToggle(testcase.id)}
+                              className="mt-1 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {testcase.title}
+                              </p>
+                              {testcase.description && (
+                                <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                                  {testcase.description}
+                                </p>
+                              )}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
+              </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200 flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={createMutation.isLoading || updateMutation.isLoading}
-                    className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {createMutation.isLoading || updateMutation.isLoading
-                      ? '처리 중...'
-                      : editMode
-                      ? '수정'
-                      : '생성'}
-                  </button>
-                </div>
-              </form>
-            </div>
+              {/* Footer - Fixed */}
+              <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  disabled={createMutation.isLoading || updateMutation.isLoading}
+                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {createMutation.isLoading || updateMutation.isLoading
+                    ? '처리 중...'
+                    : editMode
+                    ? '수정'
+                    : '생성'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

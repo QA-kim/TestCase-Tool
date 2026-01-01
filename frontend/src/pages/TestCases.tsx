@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import {
   Plus, Edit2, Trash2, X, Search, ChevronDown, ChevronRight,
   Folder, FolderOpen, FileText, ArrowUp, ArrowDown, Circle, MoreVertical,
-  Download, Upload, AlertCircle, CheckCircle, FolderPlus, Move
+  Download, Upload, AlertCircle, CheckCircle, FolderPlus, Move, BookOpen
 } from 'lucide-react'
 import api from '../lib/axios'
 import { useAuth } from '../contexts/AuthContext'
@@ -13,7 +13,8 @@ import { foldersApi, Folder as FolderType } from '../services/folders'
 export default function TestCases() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null)
+  const canWrite = user?.role === 'admin' || user?.role === 'qa_manager' || user?.role === 'qa_engineer'
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [selectedTestCase, setSelectedTestCase] = useState<any>(null)
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -21,7 +22,7 @@ export default function TestCases() {
   const [searchQuery, setSearchQuery] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
-  const [expandedProjects, setExpandedProjects] = useState<Set<number>>(new Set())
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set())
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -30,12 +31,13 @@ export default function TestCases() {
     expected_result: '',
     priority: 'medium',
     test_type: 'functional',
-    project_id: 1,
+    project_id: '',
     folder_id: undefined as string | undefined,
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [importResult, setImportResult] = useState<{success: boolean, imported_count: number, errors: string[]} | null>(null)
   const [showImportResult, setShowImportResult] = useState(false)
+  const [showImportGuide, setShowImportGuide] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
 
@@ -408,7 +410,7 @@ export default function TestCases() {
     return projects?.find((p: any) => p.id === selectedProjectId)
   }, [projects, selectedProjectId])
 
-  const toggleProject = (projectId: number) => {
+  const toggleProject = (projectId: string) => {
     const newExpanded = new Set(expandedProjects)
     if (newExpanded.has(projectId)) {
       newExpanded.delete(projectId)
@@ -668,7 +670,7 @@ export default function TestCases() {
           )}
           <span className="text-sm flex-1 truncate">{folder.name}</span>
           <span className="text-xs text-gray-500">{testCaseCount}</span>
-          {isAdmin && (
+          {canWrite && (
             <div className="relative group inline-block" onClick={(e) => e.stopPropagation()}>
               <button className="p-0.5 text-gray-400 hover:text-gray-600 rounded opacity-0 group-hover:opacity-100">
                 <MoreVertical className="w-3.5 h-3.5" />
@@ -755,7 +757,7 @@ export default function TestCases() {
                 {/* Folders under Project */}
                 {isExpanded && (
                   <div className="mt-1">
-                    {isAdmin && (
+                    {canWrite && (
                       <button
                         onClick={() => {
                           setSelectedProjectId(project.id)
@@ -830,28 +832,40 @@ export default function TestCases() {
                   </>
                 ) : (
                   <>
+                    {canWrite && (
+                      <>
+                        <button
+                          onClick={handleDownloadTemplate}
+                          className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-sm font-medium"
+                        >
+                          <Download className="w-4 h-4" />
+                          Excel 템플릿
+                        </button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".xlsx,.xls"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
+                        >
+                          <Upload className="w-4 h-4" />
+                          Excel Import
+                        </button>
+                      </>
+                    )}
                     <button
-                      onClick={handleDownloadTemplate}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-sm font-medium"
+                      onClick={() => setShowImportGuide(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium"
+                      title="Excel Import 가이드"
                     >
-                      <Download className="w-4 h-4" />
-                      Excel 템플릿
+                      <BookOpen className="w-4 h-4" />
+                      가이드
                     </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
-                    >
-                      <Upload className="w-4 h-4" />
-                      Excel Import
-                    </button>
-                    {selectedProjectId && (
+                    {canWrite && selectedProjectId && (
                       <button
                         onClick={() => {
                           setFormData({ ...formData, project_id: selectedProjectId, folder_id: selectedFolderId || undefined })
@@ -934,7 +948,7 @@ export default function TestCases() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
                   <tr>
-                    {isAdmin && (
+                    {canWrite && (
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase w-16">
                         <input
                           type="checkbox"
@@ -953,7 +967,7 @@ export default function TestCases() {
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase w-28">
                       유형
                     </th>
-                    {isAdmin && (
+                    {canWrite && (
                       <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase w-20">
                         작업
                       </th>
@@ -984,7 +998,7 @@ export default function TestCases() {
                         cursor: isDragging ? 'move' : 'pointer'
                       }}
                     >
-                      {isAdmin && (
+                      {canWrite && (
                         <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                           <input
                             type="checkbox"
@@ -1018,7 +1032,7 @@ export default function TestCases() {
                           {getTypeLabel(testcase.test_type)}
                         </span>
                       </td>
-                      {isAdmin && (
+                      {canWrite && (
                         <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="relative group inline-block">
                             <button className="p-1 text-gray-400 hover:text-gray-600 rounded">
@@ -1131,7 +1145,7 @@ export default function TestCases() {
           </div>
 
           {/* Panel Actions */}
-          {isAdmin && (
+          {canWrite && (
             <div className="border-t border-gray-200 p-4 flex gap-2">
               <button
                 onClick={() => handleEdit(selectedTestCase)}
@@ -1393,11 +1407,17 @@ export default function TestCases() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
                     >
                       <option value="">없음 (최상위)</option>
-                      {folders?.filter((f: FolderType) => !editFolderMode || f.id !== editFolderId).map((folder: FolderType) => (
-                        <option key={folder.id} value={folder.id}>
-                          {folder.name}
-                        </option>
-                      ))}
+                      {folders
+                        ?.filter((f: FolderType) =>
+                          f.project_id === selectedProjectId &&
+                          (!editFolderMode || f.id !== editFolderId)
+                        )
+                        .map((folder: FolderType) => (
+                          <option key={folder.id} value={folder.id}>
+                            {folder.name}
+                          </option>
+                        ))
+                      }
                     </select>
                   </div>
 
@@ -1485,6 +1505,181 @@ export default function TestCases() {
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
                   {bulkMoveMutation.isLoading ? '이동 중...' : '이동'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Excel Import Guide Modal */}
+      {showImportGuide && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={() => setShowImportGuide(false)} />
+
+            <div className="inline-block w-full max-w-4xl my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Excel Import 가이드</h3>
+                </div>
+                <button
+                  onClick={() => setShowImportGuide(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">
+                <div className="prose prose-sm max-w-none">
+                  {/* 개요 */}
+                  <section className="mb-6">
+                    <h3 className="text-base font-semibold text-gray-900 mb-2">📋 개요</h3>
+                    <p className="text-sm text-gray-700">Excel 파일(.xlsx, .xls)을 통해 테스트케이스를 일괄 등록할 수 있습니다.</p>
+                  </section>
+
+                  {/* Excel 파일 구조 */}
+                  <section className="mb-6">
+                    <h3 className="text-base font-semibold text-gray-900 mb-2">📊 Excel 파일 구조</h3>
+                    <div className="bg-gray-50 p-3 rounded-md mb-2">
+                      <p className="text-xs font-medium text-gray-700 mb-2">헤더 행 (1행):</p>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-xs border border-gray-300">
+                          <thead>
+                            <tr className="bg-gray-100">
+                              <th className="border border-gray-300 px-2 py-1">프로젝트명</th>
+                              <th className="border border-gray-300 px-2 py-1">제목</th>
+                              <th className="border border-gray-300 px-2 py-1">설명</th>
+                              <th className="border border-gray-300 px-2 py-1">사전조건</th>
+                              <th className="border border-gray-300 px-2 py-1">수행방법</th>
+                              <th className="border border-gray-300 px-2 py-1">예상결과</th>
+                              <th className="border border-gray-300 px-2 py-1">우선순위</th>
+                              <th className="border border-gray-300 px-2 py-1">테스트유형</th>
+                            </tr>
+                          </thead>
+                        </table>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600">2행부터는 실제 데이터를 입력합니다.</p>
+                  </section>
+
+                  {/* 필수 필드 */}
+                  <section className="mb-6">
+                    <h3 className="text-base font-semibold text-gray-900 mb-2">✅ 필수 입력 필드</h3>
+                    <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-2">
+                      <ul className="text-xs text-gray-700 space-y-1 list-disc list-inside">
+                        <li><strong>프로젝트명</strong> - 시스템에 존재하는 프로젝트명 (대소문자 구분)</li>
+                        <li><strong>제목</strong> - 테스트케이스 제목 (최대 500자)</li>
+                        <li><strong>수행방법</strong> - 테스트 실행 단계 (최대 5000자)</li>
+                        <li><strong>예상결과</strong> - 기대되는 결과 (최대 5000자)</li>
+                        <li><strong>우선순위</strong> - low, medium, high 중 하나 (소문자)</li>
+                        <li><strong>테스트유형</strong> - functional, regression, smoke, integration, performance, security 중 하나 (소문자)</li>
+                      </ul>
+                    </div>
+                  </section>
+
+                  {/* 선택 필드 */}
+                  <section className="mb-6">
+                    <h3 className="text-base font-semibold text-gray-900 mb-2">⭕ 선택 입력 필드</h3>
+                    <ul className="text-xs text-gray-700 space-y-1 list-disc list-inside">
+                      <li><strong>설명</strong> - 테스트케이스 상세 설명 (최대 5000자)</li>
+                      <li><strong>사전조건</strong> - 테스트 실행 전 필요 조건 (최대 5000자)</li>
+                    </ul>
+                  </section>
+
+                  {/* 정해진 값 */}
+                  <section className="mb-6">
+                    <h3 className="text-base font-semibold text-gray-900 mb-2">🔤 정해진 값 (Enum)</h3>
+
+                    <div className="mb-3">
+                      <p className="text-sm font-medium text-gray-700 mb-1">우선순위 (반드시 소문자):</p>
+                      <div className="flex gap-2 flex-wrap">
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">✅ low</span>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">✅ medium</span>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">✅ high</span>
+                      </div>
+                      <div className="flex gap-2 flex-wrap mt-1">
+                        <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded line-through">❌ Low</span>
+                        <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded line-through">❌ MEDIUM</span>
+                        <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded line-through">❌ 낮음</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-1">테스트유형 (반드시 소문자):</p>
+                      <div className="flex gap-2 flex-wrap">
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">✅ functional</span>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">✅ regression</span>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">✅ smoke</span>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">✅ integration</span>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">✅ performance</span>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">✅ security</span>
+                      </div>
+                      <div className="flex gap-2 flex-wrap mt-1">
+                        <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded line-through">❌ Functional</span>
+                        <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded line-through">❌ PERFORMANCE</span>
+                        <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded line-through">❌ 기능</span>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* 예시 */}
+                  <section className="mb-6">
+                    <h3 className="text-base font-semibold text-gray-900 mb-2">💡 예시</h3>
+                    <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-xs border border-gray-300">
+                          <thead>
+                            <tr className="bg-blue-100">
+                              <th className="border border-gray-300 px-2 py-1 text-left">프로젝트명</th>
+                              <th className="border border-gray-300 px-2 py-1 text-left">제목</th>
+                              <th className="border border-gray-300 px-2 py-1 text-left">수행방법</th>
+                              <th className="border border-gray-300 px-2 py-1 text-left">예상결과</th>
+                              <th className="border border-gray-300 px-2 py-1 text-left">우선순위</th>
+                              <th className="border border-gray-300 px-2 py-1 text-left">테스트유형</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td className="border border-gray-300 px-2 py-1">Web 프로젝트</td>
+                              <td className="border border-gray-300 px-2 py-1">로그인 성공 테스트</td>
+                              <td className="border border-gray-300 px-2 py-1">1. 로그인 페이지 접속<br/>2. ID/PW 입력</td>
+                              <td className="border border-gray-300 px-2 py-1">메인 페이지 이동</td>
+                              <td className="border border-gray-300 px-2 py-1">high</td>
+                              <td className="border border-gray-300 px-2 py-1">functional</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* 주의사항 */}
+                  <section className="mb-4">
+                    <h3 className="text-base font-semibold text-gray-900 mb-2">⚠️ 주의사항</h3>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                      <ul className="text-xs text-gray-700 space-y-1 list-disc list-inside">
+                        <li>프로젝트는 Import 전에 미리 생성되어 있어야 합니다</li>
+                        <li>프로젝트명은 대소문자를 구분하므로 정확히 입력해야 합니다</li>
+                        <li>우선순위와 테스트유형은 반드시 영어 소문자로 입력해야 합니다</li>
+                        <li>필수 필드가 하나라도 누락되면 해당 행은 import되지 않습니다</li>
+                      </ul>
+                    </div>
+                  </section>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-end px-6 py-4 bg-gray-50 border-t border-gray-200">
+                <button
+                  onClick={() => setShowImportGuide(false)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
+                  확인
                 </button>
               </div>
             </div>
