@@ -7,6 +7,9 @@ import re
 
 class UserRole(str, Enum):
     ADMIN = "admin"
+    QA_MANAGER = "qa_manager"
+    QA_ENGINEER = "qa_engineer"
+    DEVELOPER = "developer"
     VIEWER = "viewer"
 
 

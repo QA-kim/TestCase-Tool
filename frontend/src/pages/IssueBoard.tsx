@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { Plus, X, Bug, Lightbulb, ListTodo, AlertCircle, Circle, FileText, Upload, Paperclip, Edit3, Save } from 'lucide-react'
 import { issuesApi, Issue, IssueStatus, IssuePriority, IssueType, uploadAttachment } from '../services/issues'
 import api from '../lib/axios'
+import { useAuth } from '../contexts/AuthContext'
 
 const STATUS_COLUMNS: { id: IssueStatus; label: string; color: string }[] = [
   { id: 'todo', label: 'To Do', color: 'bg-gray-100' },
@@ -26,6 +27,8 @@ const TYPE_CONFIG = {
 }
 
 export default function IssueBoard() {
+  const { user } = useAuth()
+  const canWrite = user?.role === 'admin' || user?.role === 'qa_manager' || user?.role === 'qa_engineer'
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const testrunId = searchParams.get('testrunId')
@@ -216,13 +219,15 @@ export default function IssueBoard() {
               전체 {issues?.length || 0}개의 이슈
             </p>
           </div>
-          <button
-            onClick={() => setOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
-          >
-            <Plus className="w-4 h-4" />
-            새 이슈
-          </button>
+          {canWrite && (
+            <button
+              onClick={() => setOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              새 이슈
+            </button>
+          )}
         </div>
 
         {/* Filters */}
@@ -284,6 +289,7 @@ export default function IssueBoard() {
                         issue={issue}
                         onDragStart={() => handleDragStart(issue)}
                         onClick={() => handleIssueClick(issue)}
+                        canWrite={canWrite}
                       />
                     ))}
                     {columnIssues.length === 0 && (
@@ -563,11 +569,13 @@ export default function IssueBoard() {
 function IssueCard({
   issue,
   onDragStart,
-  onClick
+  onClick,
+  canWrite = true
 }: {
   issue: Issue
   onDragStart: () => void
   onClick: () => void
+  canWrite?: boolean
 }) {
   const TypeIcon = TYPE_CONFIG[issue.issue_type].icon
   const priorityConfig = PRIORITY_CONFIG[issue.priority]
@@ -585,8 +593,8 @@ function IssueCard({
 
   return (
     <div
-      draggable
-      onDragStart={onDragStart}
+      draggable={canWrite}
+      onDragStart={canWrite ? onDragStart : undefined}
       onClick={onClick}
       className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
     >

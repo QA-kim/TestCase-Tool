@@ -7,6 +7,7 @@ from openpyxl.styles import Font, PatternFill, Alignment
 
 from app.db.supabase import testcases_collection, testcase_history_collection, projects_collection
 from app.core.security import get_current_user_firestore
+from app.core.permissions import check_write_permission
 from app.schemas.testcase import TestCaseCreate, TestCaseUpdate, TestCase as TestCaseSchema
 
 router = APIRouter(redirect_slashes=False)
@@ -17,6 +18,9 @@ def create_testcase(
     testcase_in: TestCaseCreate,
     current_user: dict = Depends(get_current_user_firestore)
 ):
+    # Check if user has permission to create test cases (viewer and developer cannot create)
+    check_write_permission(current_user, "테스트케이스")
+
     testcase_data = testcase_in.dict()  # Pydantic v1 uses .dict()
     testcase = testcases_collection.create(testcase_data)
     return testcase
@@ -57,6 +61,9 @@ def update_testcase(
     testcase_in: TestCaseUpdate,
     current_user: dict = Depends(get_current_user_firestore)
 ):
+    # Check if user has permission to update test cases (viewer and developer cannot update)
+    check_write_permission(current_user, "테스트케이스")
+
     testcase = testcases_collection.get(testcase_id)
     if not testcase:
         raise HTTPException(
@@ -101,6 +108,9 @@ def delete_testcase(
     testcase_id: str,
     current_user: dict = Depends(get_current_user_firestore)
 ):
+    # Check if user has permission to delete test cases (viewer and developer cannot delete)
+    check_write_permission(current_user, "테스트케이스")
+
     testcase = testcases_collection.get(testcase_id)
     if not testcase:
         raise HTTPException(
@@ -229,6 +239,9 @@ async def import_excel(
     current_user: dict = Depends(get_current_user_firestore)
 ):
     """Import test cases from Excel file"""
+    # Check if user has permission to import test cases (viewer and developer cannot import)
+    check_write_permission(current_user, "테스트케이스")
+
     if not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

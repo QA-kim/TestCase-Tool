@@ -4,6 +4,7 @@ import time
 
 from app.db.supabase import issues_collection, projects_collection, testcases_collection, upload_file, get_file_url
 from app.core.security import get_current_user_firestore
+from app.core.permissions import check_write_permission
 from app.schemas.issue import IssueCreate, IssueUpdate, Issue as IssueSchema
 
 router = APIRouter(redirect_slashes=False)
@@ -15,6 +16,9 @@ def create_issue(
     current_user: dict = Depends(get_current_user_firestore)
 ):
     """Create a new issue"""
+    # Check if user has permission to create issues (viewer and developer cannot create)
+    check_write_permission(current_user, "이슈")
+
     # Verify project exists
     project = projects_collection.get(issue_in.project_id)
     if not project:
@@ -101,6 +105,9 @@ def update_issue(
     current_user: dict = Depends(get_current_user_firestore)
 ):
     """Update an issue"""
+    # Check if user has permission to update issues (viewer and developer cannot update)
+    check_write_permission(current_user, "이슈")
+
     issue = issues_collection.get(issue_id)
     if not issue:
         raise HTTPException(
@@ -141,6 +148,9 @@ def update_issue_status(
     current_user: dict = Depends(get_current_user_firestore)
 ):
     """Update issue status (for kanban board drag and drop)"""
+    # Check if user has permission to update issue status (viewer and developer cannot update)
+    check_write_permission(current_user, "이슈 상태")
+
     issue = issues_collection.get(issue_id)
     if not issue:
         raise HTTPException(
@@ -169,6 +179,9 @@ def delete_issue(
     current_user: dict = Depends(get_current_user_firestore)
 ):
     """Delete an issue"""
+    # Check if user has permission to delete issues (viewer and developer cannot delete)
+    check_write_permission(current_user, "이슈")
+
     issue = issues_collection.get(issue_id)
     if not issue:
         raise HTTPException(
