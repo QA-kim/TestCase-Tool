@@ -104,11 +104,11 @@ export default function TestRunDetail() {
   )
 
   const handleStatusClick = (testcaseId: string, status: string) => {
-    const existingResult = results?.find((r: any) => r.test_case_id === testcaseId)
+    const existingResult = results?.find((r: any) => r.testcase_id === testcaseId)
 
     const data = {
-      test_run_id: id,
-      test_case_id: testcaseId,
+      testrun_id: id,
+      testcase_id: testcaseId,
       status,
       comment: '',
     }
@@ -239,7 +239,7 @@ ${testcase.expected_result || '예상결과가 명시되지 않았습니다.'}
   const passRate = totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 0
 
   const selectedResult = selectedHistoryTestCase
-    ? results?.find((r: any) => r.test_case_id === selectedHistoryTestCase)
+    ? results?.find((r: any) => r.testcase_id === selectedHistoryTestCase)
     : null
 
   const selectedTestCase = selectedHistoryTestCase
@@ -315,7 +315,7 @@ ${testcase.expected_result || '예상결과가 명시되지 않았습니다.'}
           </thead>
           <tbody>
             ${testRunTestCases.map((testcase: any, index: number) => {
-              const result = results?.find((r: any) => r.test_case_id === testcase.id)
+              const result = results?.find((r: any) => r.testcase_id === testcase.id)
               const bgColor = index % 2 === 0 ? '#ffffff' : '#f9f9f9'
 
               // Format history
@@ -487,7 +487,7 @@ ${testcase.expected_result || '예상결과가 명시되지 않았습니다.'}
                   </tr>
                 ) : (
                   testRunTestCases.map((testcase: any) => {
-                    const result = results?.find((r: any) => r.test_case_id === testcase.id)
+                    const result = results?.find((r: any) => r.testcase_id === testcase.id)
                     const isSelected = selectedHistoryTestCase === testcase.id
 
                     return (

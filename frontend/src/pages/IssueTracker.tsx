@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import {
   Plus, X, Bug, Lightbulb, ListTodo, Filter, Search,
   ChevronDown, FileText, User, Calendar, Edit2,
-  LayoutList, LayoutGrid, Clock, AlertCircle, Upload, Paperclip
+  LayoutList, LayoutGrid, Clock, AlertCircle, Upload, Paperclip,
+  ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react'
 import { issuesApi, Issue, IssueStatus, IssuePriority, IssueType, uploadAttachment } from '../services/issues'
 import api from '../lib/axios'
@@ -43,6 +44,7 @@ export default function IssueTracker() {
   const [filterType, setFilterType] = useState<IssueType | 'all'>('all')
   const [filterProject, setFilterProject] = useState<string>('all')
   const [filterTestrun, setFilterTestrun] = useState<string>('all')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   // Modal state
   const [createModalOpen, setCreateModalOpen] = useState(false)
@@ -138,8 +140,8 @@ export default function IssueTracker() {
     }
   )
 
-  // Filter issues
-  const filteredIssues = issues?.filter((issue) => {
+  // Filter and sort issues
+  const filteredIssues = (issues?.filter((issue) => {
     if (searchQuery && !issue.title.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false
     }
@@ -149,7 +151,11 @@ export default function IssueTracker() {
     if (filterProject !== 'all' && issue.project_id !== filterProject) return false
     if (filterTestrun !== 'all' && issue.testrun_id !== filterTestrun) return false
     return true
-  }) || []
+  }) || []).sort((a, b) => {
+    const dateA = new Date(a.created_at).getTime()
+    const dateB = new Date(b.created_at).getTime()
+    return sortOrder === 'desc' ? dateB - dateA : dateA - dateB
+  })
 
   // Handlers
   const handleCloseCreateModal = () => {
@@ -273,6 +279,25 @@ export default function IssueTracker() {
                 칸반
               </button>
             </div>
+
+            {/* Sort Button */}
+            <button
+              onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+              className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium"
+              title={sortOrder === 'desc' ? '생성일자 내림차순' : '생성일자 오름차순'}
+            >
+              {sortOrder === 'desc' ? (
+                <>
+                  <ArrowDown className="w-4 h-4" />
+                  최신순
+                </>
+              ) : (
+                <>
+                  <ArrowUp className="w-4 h-4" />
+                  오래된순
+                </>
+              )}
+            </button>
 
             {/* Create Button */}
             <button
