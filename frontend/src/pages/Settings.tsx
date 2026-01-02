@@ -125,17 +125,9 @@ export default function Settings() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">역할</label>
                 <div className="flex items-center gap-2">
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    user?.role === 'admin' ? 'bg-purple-100 text-purple-700' :
-                    user?.role === 'qa_manager' ? 'bg-blue-100 text-blue-700' :
-                    user?.role === 'qa_engineer' ? 'bg-green-100 text-green-700' :
-                    user?.role === 'developer' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-gray-100 text-gray-700'
+                    user?.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
                   }`}>
-                    {user?.role === 'admin' ? '관리자' :
-                     user?.role === 'qa_manager' ? 'QA 매니저' :
-                     user?.role === 'qa_engineer' ? 'QA 엔지니어' :
-                     user?.role === 'developer' ? '개발자' :
-                     '뷰어'}
+                    {user?.role === 'admin' ? '관리자' : '뷰어'}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">역할 변경은 관리자에게 문의하세요</p>

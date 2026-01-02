@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext'
 export default function TestRuns() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const canWrite = user?.role === 'admin' || user?.role === 'qa_manager' || user?.role === 'qa_engineer'
+  const canWrite = user?.role === 'admin'
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)

@@ -28,8 +28,7 @@ const TYPE_CONFIG = {
 
 export default function IssueBoard() {
   const { user } = useAuth()
-  const canWrite = user?.role === 'admin' || user?.role === 'qa_manager' || user?.role === 'qa_engineer'
-  const isViewer = user?.role === 'viewer'
+  const canWrite = user?.role === 'admin'
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const testrunId = searchParams.get('testrunId')
@@ -645,7 +644,7 @@ function IssueCard({
 // Issue Detail Modal Component
 function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => void }) {
   const { user } = useAuth()
-  const canWrite = user?.role === 'admin' || user?.role === 'qa_manager' || user?.role === 'qa_engineer'
+  const canWrite = user?.role === 'admin'
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [isEditing, setIsEditing] = useState(false)

@@ -13,7 +13,7 @@ import { foldersApi, Folder as FolderType } from '../services/folders'
 export default function TestCases() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
-  const canWrite = user?.role === 'admin' || user?.role === 'qa_manager' || user?.role === 'qa_engineer'
+  const canWrite = user?.role === 'admin'
   const isViewer = user?.role === 'viewer'
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [selectedTestCase, setSelectedTestCase] = useState<any>(null)
