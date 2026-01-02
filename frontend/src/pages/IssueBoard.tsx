@@ -29,6 +29,7 @@ const TYPE_CONFIG = {
 export default function IssueBoard() {
   const { user } = useAuth()
   const canWrite = user?.role === 'admin' || user?.role === 'qa_manager' || user?.role === 'qa_engineer'
+  const isViewer = user?.role === 'viewer'
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const testrunId = searchParams.get('testrunId')
@@ -219,7 +220,7 @@ export default function IssueBoard() {
               전체 {issues?.length || 0}개의 이슈
             </p>
           </div>
-          {canWrite && (
+          {!isViewer && canWrite && (
             <button
               onClick={() => setOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
@@ -643,6 +644,8 @@ function IssueCard({
 
 // Issue Detail Modal Component
 function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => void }) {
+  const { user } = useAuth()
+  const canWrite = user?.role === 'admin' || user?.role === 'qa_manager' || user?.role === 'qa_engineer'
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [isEditing, setIsEditing] = useState(false)
@@ -1064,7 +1067,7 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
 
         {/* Footer */}
         <div className="flex justify-between items-center p-6 border-t border-gray-200 bg-gray-50">
-          {!isEditing && (
+          {!isEditing && canWrite && (
             <button
               onClick={() => setIsEditing(true)}
               className="flex items-center gap-2 px-4 py-2 text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors"

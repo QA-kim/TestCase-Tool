@@ -58,7 +58,8 @@
       "Bash(export SUPABASE_URL=\"https://eclniwdhzpkzhbcrncvc.supabase.co\")",
       "Bash(export SUPABASE_SERVICE_KEY:*)",
       "Bash(backend/venv/bin/python:*)",
-      "Bash(do echo \"=== 시도 $i ===\")"
+      "Bash(do echo \"=== 시도 $i ===\")",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []
