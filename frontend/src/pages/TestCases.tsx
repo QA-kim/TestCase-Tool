@@ -14,6 +14,7 @@ export default function TestCases() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
   const canWrite = user?.role === 'admin' || user?.role === 'qa_manager' || user?.role === 'qa_engineer'
+  const isViewer = user?.role === 'viewer'
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [selectedTestCase, setSelectedTestCase] = useState<any>(null)
   const [open, setOpen] = useState(false)
@@ -828,6 +829,17 @@ export default function TestCases() {
                     >
                       <X className="w-4 h-4" />
                       취소
+                    </button>
+                  </>
+                ) : isViewer ? (
+                  <>
+                    <button
+                      onClick={() => setShowImportGuide(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium"
+                      title="Excel Import 가이드"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      가이드
                     </button>
                   </>
                 ) : (
