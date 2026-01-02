@@ -220,7 +220,7 @@ export default function IssueBoard() {
               전체 {issues?.length || 0}개의 이슈
             </p>
           </div>
-          {!isViewer && canWrite && (
+          {canWrite && (
             <button
               onClick={() => setOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
