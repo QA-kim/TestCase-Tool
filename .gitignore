@@ -25,10 +25,17 @@ yarn-error.log
 *.swo
 *~
 
-# Environment
+# Environment - ALL .env files (including production)
 .env
-.env.local
-.env.*.local
+.env.*
+*.env
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+frontend/.env.production
+frontend/.env.development
+frontend/.env.local
 
 # Database
 *.db
