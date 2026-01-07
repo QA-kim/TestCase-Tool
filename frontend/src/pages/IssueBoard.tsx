@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Plus, X, Bug, Lightbulb, ListTodo, AlertCircle, Circle, FileText, Upload, Paperclip, Edit3, Save } from 'lucide-react'
-import { issuesApi, Issue, IssueStatus, IssuePriority, IssueType, uploadAttachment } from '../services/issues'
+import { Plus, X, Bug, Lightbulb, ListTodo, AlertCircle, Circle, FileText, Upload, Paperclip, Edit3, Save, Clock, History } from 'lucide-react'
+import { issuesApi, Issue, IssueStatus, IssuePriority, IssueType, IssueHistory, uploadAttachment } from '../services/issues'
 import api from '../lib/axios'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -695,6 +695,18 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
     { enabled: !!issue.assigned_to }
   )
 
+  // Fetch issue history
+  const { data: history } = useQuery<IssueHistory[]>(
+    ['issue-history', issue.id],
+    () => issuesApi.getHistory(issue.id)
+  )
+
+  // Fetch users for history display
+  const { data: allUsers } = useQuery('users', async () => {
+    const response = await api.get('/users')
+    return response.data
+  })
+
   // Fetch users for assignee selection
   const { data: users } = useQuery('users', async () => {
     const response = await api.get('/users')
@@ -1052,6 +1064,14 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
                   {new Date(issue.updated_at).toLocaleString('ko-KR')}
                 </span>
               </div>
+              {issue.resolved_at && (
+                <div>
+                  <span className="text-gray-500">해결일:</span>
+                  <span className="ml-2 text-green-700 font-medium">
+                    {new Date(issue.resolved_at).toLocaleString('ko-KR')}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="mt-2">
               <span className="text-gray-500 text-sm">작성자:</span>
@@ -1062,6 +1082,95 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
               )}
             </div>
           </div>
+
+          {/* History Section */}
+          {history && history.length > 0 && (
+            <div className="pt-4 border-t border-gray-200">
+              <div className="flex items-center gap-2 mb-3">
+                <History className="w-5 h-5 text-gray-600" />
+                <h4 className="text-base font-semibold text-gray-900">변경 이력</h4>
+              </div>
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {history.map((entry) => {
+                  const changedByUser = allUsers?.find((u: any) => u.id === entry.changed_by)
+                  const fieldNameKr = {
+                    status: '상태',
+                    priority: '우선순위',
+                    issue_type: '유형',
+                    title: '제목',
+                    description: '설명',
+                    assigned_to: '담당자',
+                    resolution: '해결방법',
+                  }[entry.field_name] || entry.field_name
+
+                  const formatValue = (fieldName: string, value: string | undefined) => {
+                    if (!value) return '없음'
+
+                    if (fieldName === 'status') {
+                      return STATUS_COLUMNS.find(s => s.id === value)?.label || value
+                    }
+                    if (fieldName === 'priority') {
+                      return PRIORITY_CONFIG[value as keyof typeof PRIORITY_CONFIG]?.label || value
+                    }
+                    if (fieldName === 'issue_type') {
+                      return TYPE_CONFIG[value as keyof typeof TYPE_CONFIG]?.label || value
+                    }
+                    if (fieldName === 'assigned_to') {
+                      const user = allUsers?.find((u: any) => u.id === value)
+                      return user?.full_name || value
+                    }
+
+                    return value.length > 50 ? value.substring(0, 50) + '...' : value
+                  }
+
+                  return (
+                    <div
+                      key={entry.id}
+                      className="bg-gray-50 rounded-lg p-3 border border-gray-200"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium text-gray-900">
+                              {changedByUser?.full_name || '알 수 없음'}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {fieldNameKr} 변경
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            <span className="line-through text-red-600">
+                              {formatValue(entry.field_name, entry.old_value)}
+                            </span>
+                            <span className="mx-2">→</span>
+                            <span className="text-green-600 font-medium">
+                              {formatValue(entry.field_name, entry.new_value)}
+                            </span>
+                          </div>
+                          {entry.comment && (
+                            <div className="mt-1 text-xs text-gray-500 italic">
+                              "{entry.comment}"
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-gray-400 flex-shrink-0">
+                          <Clock className="w-3 h-3" />
+                          <span className="text-xs">
+                            {new Date(entry.changed_at).toLocaleString('ko-KR', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

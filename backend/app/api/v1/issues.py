@@ -1,13 +1,27 @@
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from typing import List
 import time
+from datetime import datetime, timezone
 
-from app.db.supabase import issues_collection, projects_collection, testcases_collection, upload_file, get_file_url
+from app.db.supabase import issues_collection, issue_history_collection, projects_collection, testcases_collection, upload_file, get_file_url
 from app.core.security import get_current_user_firestore
 from app.core.permissions import check_write_permission
-from app.schemas.issue import IssueCreate, IssueUpdate, Issue as IssueSchema
+from app.schemas.issue import IssueCreate, IssueUpdate, Issue as IssueSchema, IssueHistory as IssueHistorySchema
 
 router = APIRouter(redirect_slashes=False)
+
+
+def record_issue_history(issue_id: str, field_name: str, old_value: str, new_value: str, changed_by: str, comment: str = None):
+    """Record a change to issue history"""
+    history_data = {
+        'issue_id': issue_id,
+        'field_name': field_name,
+        'old_value': str(old_value) if old_value is not None else None,
+        'new_value': str(new_value) if new_value is not None else None,
+        'changed_by': changed_by,
+        'comment': comment
+    }
+    issue_history_collection.create(history_data)
 
 
 @router.post("", response_model=IssueSchema, status_code=status.HTTP_201_CREATED)
@@ -134,6 +148,25 @@ def update_issue(
     if update_data.get('assigned_to') == '':
         update_data['assigned_to'] = None
 
+    # Record history for changed fields
+    for field, new_value in update_data.items():
+        old_value = issue.get(field)
+        if old_value != new_value:
+            record_issue_history(
+                issue_id=issue_id,
+                field_name=field,
+                old_value=old_value,
+                new_value=new_value,
+                changed_by=current_user['id']
+            )
+
+    # Check if status changed to 'done' to set resolved_at
+    if update_data.get('status') == 'done' and issue.get('status') != 'done':
+        update_data['resolved_at'] = datetime.now(timezone.utc).isoformat()
+    # Check if status changed from 'done' to something else to clear resolved_at
+    elif update_data.get('status') and update_data.get('status') != 'done' and issue.get('status') == 'done':
+        update_data['resolved_at'] = None
+
     issues_collection.update(issue_id, update_data)
 
     # Return updated issue
@@ -166,7 +199,29 @@ def update_issue_status(
             detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
         )
 
-    issues_collection.update(issue_id, {'status': status})
+    # Record status change in history
+    old_status = issue.get('status')
+    if old_status != status:
+        record_issue_history(
+            issue_id=issue_id,
+            field_name='status',
+            old_value=old_status,
+            new_value=status,
+            changed_by=current_user['id'],
+            comment='Status changed via kanban board'
+        )
+
+    # Prepare update data
+    update_data = {'status': status}
+
+    # Set resolved_at when status changes to 'done'
+    if status == 'done' and old_status != 'done':
+        update_data['resolved_at'] = datetime.now(timezone.utc).isoformat()
+    # Clear resolved_at when status changes from 'done' to something else
+    elif status != 'done' and old_status == 'done':
+        update_data['resolved_at'] = None
+
+    issues_collection.update(issue_id, update_data)
 
     # Return updated issue
     updated_issue = issues_collection.get(issue_id)
@@ -233,6 +288,30 @@ async def upload_attachment(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to upload file: {str(e)}"
         )
+
+
+@router.get("/{issue_id}/history", response_model=List[IssueHistorySchema])
+def get_issue_history(
+    issue_id: str,
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """Get history of changes for a specific issue"""
+    # Verify issue exists
+    issue = issues_collection.get(issue_id)
+    if not issue:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Issue not found"
+        )
+
+    # Get all history records for this issue, ordered by changed_at descending
+    all_history = issue_history_collection.list(limit=1000)
+    issue_history = [h for h in all_history if h.get('issue_id') == issue_id]
+
+    # Sort by changed_at descending (most recent first)
+    issue_history.sort(key=lambda x: x.get('changed_at', ''), reverse=True)
+
+    return issue_history
 
 
 # Note: Attachments are served directly from Supabase Storage public URLs

@@ -20,6 +20,18 @@ export interface Issue {
   created_by: string
   created_at: string
   updated_at: string
+  resolved_at?: string
+}
+
+export interface IssueHistory {
+  id: string
+  issue_id: string
+  changed_by: string
+  field_name: string
+  old_value?: string
+  new_value?: string
+  changed_at: string
+  comment?: string
 }
 
 export interface IssueCreate {
@@ -104,5 +116,11 @@ export const issuesApi = {
   // Delete an issue
   delete: async (issueId: string): Promise<void> => {
     await api.delete(`/issues/${issueId}`)
+  },
+
+  // Get issue history
+  getHistory: async (issueId: string): Promise<IssueHistory[]> => {
+    const response = await api.get(`/issues/${issueId}/history`)
+    return response.data
   }
 }

@@ -234,6 +234,7 @@ testrun_testcases_collection = SupabaseCollection("testrun_testcases")
 testresults_collection = SupabaseCollection("testresults")
 testresult_history_collection = SupabaseCollection("testresult_history")
 issues_collection = SupabaseCollection("issues")
+issue_history_collection = SupabaseCollection("issue_history")
 
 
 # Supabase Storage for file uploads

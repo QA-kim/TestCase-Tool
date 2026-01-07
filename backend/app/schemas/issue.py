@@ -91,10 +91,36 @@ class IssueInDB(IssueBase):
     created_by: str  # user_id
     created_at: datetime
     updated_at: datetime
+    resolved_at: Optional[datetime] = None  # When issue was marked as Done
 
     class Config:
         from_attributes = True
 
 
 class Issue(IssueInDB):
+    pass
+
+
+class IssueHistoryBase(BaseModel):
+    issue_id: str
+    field_name: str
+    old_value: Optional[str] = None
+    new_value: Optional[str] = None
+    comment: Optional[str] = None
+
+
+class IssueHistoryCreate(IssueHistoryBase):
+    changed_by: str
+
+
+class IssueHistoryInDB(IssueHistoryBase):
+    id: str
+    changed_by: str
+    changed_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class IssueHistory(IssueHistoryInDB):
     pass
