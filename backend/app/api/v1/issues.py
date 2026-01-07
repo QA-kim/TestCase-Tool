@@ -13,13 +13,16 @@ router = APIRouter(redirect_slashes=False)
 
 def record_issue_history(issue_id: str, field_name: str, old_value: str, new_value: str, changed_by: str, comment: str = None):
     """Record a change to issue history"""
+    # Use changed_at instead of created_at for issue_history table
     history_data = {
         'issue_id': issue_id,
         'field_name': field_name,
         'old_value': str(old_value) if old_value is not None else None,
         'new_value': str(new_value) if new_value is not None else None,
         'changed_by': changed_by,
-        'comment': comment
+        'comment': comment,
+        'created_at': datetime.now(timezone.utc).isoformat(),  # Prevent auto-add by helper
+        'updated_at': datetime.now(timezone.utc).isoformat()   # Prevent auto-add by helper
     }
     issue_history_collection.create(history_data)
 
