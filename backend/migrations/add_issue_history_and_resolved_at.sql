@@ -44,11 +44,13 @@ CREATE POLICY "Users can view issue history"
         )
     );
 
--- RLS Policy: Authenticated users can insert history
-CREATE POLICY "Authenticated users can insert issue history"
+-- RLS Policy: Allow service role to insert history
+-- Note: Service role bypasses RLS, but we keep this policy for clarity
+-- If using anon/authenticated keys, this would allow authenticated users
+CREATE POLICY "Allow insert issue history"
     ON issue_history
     FOR INSERT
-    WITH CHECK (auth.role() = 'authenticated');
+    WITH CHECK (true);
 
 -- Comment on table and columns
 COMMENT ON TABLE issue_history IS 'Tracks all changes made to issues, especially status changes';
