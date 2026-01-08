@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import {
@@ -400,6 +400,9 @@ export default function IssueTracker() {
               setSelectedIssue(issue)
               setDetailModalOpen(true)
             }}
+            onStatusChange={(issueId, status) => {
+              updateStatusMutation.mutate({ issueId, status })
+            }}
           />
         ) : (
           <KanbanView
@@ -408,6 +411,10 @@ export default function IssueTracker() {
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             onEditClick={handleEditClick}
+            onIssueClick={(issue) => {
+              setSelectedIssue(issue)
+              setDetailModalOpen(true)
+            }}
           />
         )}
       </div>
@@ -464,11 +471,13 @@ export default function IssueTracker() {
 function ListView({
   issues,
   onEditClick,
-  onIssueClick
+  onIssueClick,
+  onStatusChange
 }: {
   issues: Issue[];
   onEditClick: (issue: Issue) => void;
   onIssueClick: (issue: Issue) => void;
+  onStatusChange: (issueId: string, status: IssueStatus) => void;
 }) {
   const navigate = useNavigate()
   const { data: users } = useQuery('users', async () => {
@@ -497,6 +506,9 @@ function ListView({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 생성일
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                해결일
+              </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 작업
               </th>
@@ -505,7 +517,7 @@ function ListView({
           <tbody className="divide-y divide-gray-200">
             {issues.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                   <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
                   <p>이슈가 없습니다</p>
                 </td>
@@ -534,9 +546,22 @@ function ListView({
                       </button>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_CONFIG[issue.status].bgColor} ${STATUS_CONFIG[issue.status].color}`}>
-                        {STATUS_CONFIG[issue.status].label}
-                      </span>
+                      <select
+                        value={issue.status}
+                        onChange={(e) => {
+                          const newStatus = e.target.value as IssueStatus
+                          if (newStatus !== issue.status) {
+                            onStatusChange(issue.id, newStatus)
+                          }
+                        }}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer border-0 ${STATUS_CONFIG[issue.status].bgColor} ${STATUS_CONFIG[issue.status].color}`}
+                      >
+                        {Object.entries(STATUS_CONFIG).map(([value, config]) => (
+                          <option key={value} value={value}>
+                            {config.label}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${PRIORITY_CONFIG[issue.priority].bgColor} ${PRIORITY_CONFIG[issue.priority].color}`}>
@@ -559,6 +584,15 @@ function ListView({
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {new Date(issue.created_at).toLocaleDateString('ko-KR')}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {issue.resolved_at ? (
+                        <span className="text-green-600 font-medium">
+                          {new Date(issue.resolved_at).toLocaleDateString('ko-KR')}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 italic">미해결</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button
@@ -586,12 +620,14 @@ function KanbanView({
   onDragOver,
   onDrop,
   onEditClick,
+  onIssueClick,
 }: {
   issues: Issue[]
   onDragStart: (issue: Issue) => void
   onDragOver: (e: React.DragEvent) => void
   onDrop: (status: IssueStatus) => void
   onEditClick: (issue: Issue) => void
+  onIssueClick: (issue: Issue) => void
 }) {
   const getIssuesByStatus = (status: IssueStatus) => {
     return issues.filter((issue) => issue.status === status)
@@ -627,6 +663,7 @@ function KanbanView({
                     issue={issue}
                     onDragStart={() => onDragStart(issue)}
                     onEditClick={() => onEditClick(issue)}
+                    onIssueClick={() => onIssueClick(issue)}
                   />
                 ))}
                 {columnIssues.length === 0 && (
@@ -649,10 +686,12 @@ function KanbanCard({
   issue,
   onDragStart,
   onEditClick,
+  onIssueClick,
 }: {
   issue: Issue
   onDragStart: () => void
   onEditClick: () => void
+  onIssueClick: () => void
 }) {
   const TypeIcon = TYPE_CONFIG[issue.issue_type].icon
   const { data: assignedUser } = useQuery(
@@ -665,10 +704,43 @@ function KanbanCard({
     { enabled: !!issue.assigned_to }
   )
 
+  const isDragging = useRef(false)
+  const dragStartTime = useRef(0)
+
+  const handleDragStart = (e: React.DragEvent) => {
+    isDragging.current = true
+    dragStartTime.current = Date.now()
+    onDragStart()
+  }
+
+  const handleDragEnd = () => {
+    const dragDuration = Date.now() - dragStartTime.current
+    
+    // 드래그가 매우 짧은 경우(실수로 드래그 된 클릭) 클릭으로 처리
+    if (dragDuration < 200) {
+      onIssueClick()
+    }
+    
+    // 드래그 종료 후 잠시동안 클릭 이벤트 차단
+    setTimeout(() => {
+      isDragging.current = false
+    }, 100)
+  }
+
+  const handleClick = () => {
+    // 드래그 중이거나 드래그 직후라면 클릭 무시
+    if (isDragging.current) {
+      return
+    }
+    onIssueClick()
+  }
+
   return (
     <div
       draggable
-      onDragStart={onDragStart}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onClick={handleClick}
       className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-move"
     >
       <div className="flex items-start justify-between mb-2">
@@ -1102,7 +1174,7 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
 
           {/* Timestamps */}
           <div className="pt-4 border-t border-gray-200">
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
                 <span className="text-gray-500">생성일:</span>
                 <span className="ml-2 text-gray-900">
@@ -1113,6 +1185,18 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
                 <span className="text-gray-500">수정일:</span>
                 <span className="ml-2 text-gray-900">
                   {new Date(issue.updated_at).toLocaleString('ko-KR')}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500">해결일:</span>
+                <span className="ml-2 text-gray-900">
+                  {issue.resolved_at ? (
+                    <span className="text-green-700 font-semibold">
+                      {new Date(issue.resolved_at).toLocaleString('ko-KR')}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 italic">미해결</span>
+                  )}
                 </span>
               </div>
             </div>

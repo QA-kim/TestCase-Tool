@@ -22,7 +22,9 @@ CREATE TABLE IF NOT EXISTS issue_history (
     old_value TEXT,
     new_value TEXT,
     changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    comment TEXT
+    comment TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Create indexes for faster queries

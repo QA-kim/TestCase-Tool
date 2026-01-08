@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { Plus, X, Bug, Lightbulb, ListTodo, AlertCircle, Circle, FileText, Upload, Paperclip, Edit3, Save, Clock, History } from 'lucide-react'
@@ -580,6 +580,9 @@ function IssueCard({
   const TypeIcon = TYPE_CONFIG[issue.issue_type].icon
   const priorityConfig = PRIORITY_CONFIG[issue.priority]
   const typeConfig = TYPE_CONFIG[issue.issue_type]
+  
+  const isDragging = useRef(false)
+  const dragStartTime = useRef(0)
 
   // Fetch creator details
   const { data: creator } = useQuery(
@@ -591,11 +594,40 @@ function IssueCard({
     { enabled: !!issue.created_by }
   )
 
+  const handleDragStart = (e: React.DragEvent) => {
+    isDragging.current = true
+    dragStartTime.current = Date.now()
+    onDragStart()
+  }
+
+  const handleDragEnd = () => {
+    const dragDuration = Date.now() - dragStartTime.current
+    
+    // 드래그가 매우 짧은 경우(실수로 드래그 된 클릭) 클릭으로 처리
+    if (dragDuration < 200) {
+      onClick()
+    }
+    
+    // 드래그 종료 후 잠시동안 클릭 이벤트 차단 (브라우저가 드래그 후 클릭 이벤트를 발생시키는 경우 대비)
+    setTimeout(() => {
+      isDragging.current = false
+    }, 100)
+  }
+
+  const handleClick = (e: React.MouseEvent) => {
+    // 드래그 중이거나 드래그 직후라면 클릭 무시
+    if (isDragging.current) {
+      return
+    }
+    onClick()
+  }
+
   return (
     <div
       draggable={canWrite}
-      onDragStart={canWrite ? onDragStart : undefined}
-      onClick={onClick}
+      onDragStart={canWrite ? handleDragStart : undefined}
+      onDragEnd={canWrite ? handleDragEnd : undefined}
+      onClick={handleClick}
       className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
     >
       {/* Type and Priority */}
@@ -624,10 +656,12 @@ function IssueCard({
           <span className="font-medium">생성일:</span>
           <span>{new Date(issue.created_at).toLocaleDateString('ko-KR')}</span>
         </div>
-        <div className="flex items-center gap-1">
-          <span className="font-medium">수정일:</span>
-          <span>{new Date(issue.updated_at).toLocaleDateString('ko-KR')}</span>
-        </div>
+        {issue.resolved_at && (
+          <div className="flex items-center gap-1">
+            <span className="font-medium">해결일:</span>
+            <span className="text-green-600 font-medium">{new Date(issue.resolved_at).toLocaleDateString('ko-KR')}</span>
+          </div>
+        )}
       </div>
 
       {/* Footer */}
@@ -1051,35 +1085,37 @@ function IssueDetailModal({ issue, onClose }: { issue: Issue; onClose: () => voi
 
           {/* Timestamps */}
           <div className="pt-4 border-t border-gray-200">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-500">생성일:</span>
-                <span className="ml-2 text-gray-900">
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">이슈 생성일:</span>
+                <span className="text-gray-900 font-medium">
                   {new Date(issue.created_at).toLocaleString('ko-KR')}
                 </span>
               </div>
-              <div>
-                <span className="text-gray-500">수정일:</span>
-                <span className="ml-2 text-gray-900">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">이슈 수정일:</span>
+                <span className="text-gray-900 font-medium">
                   {new Date(issue.updated_at).toLocaleString('ko-KR')}
                 </span>
               </div>
-              {issue.resolved_at && (
-                <div>
-                  <span className="text-gray-500">해결일:</span>
-                  <span className="ml-2 text-green-700 font-medium">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">이슈 해결일:</span>
+                {issue.resolved_at ? (
+                  <span className="text-green-700 font-semibold">
                     {new Date(issue.resolved_at).toLocaleString('ko-KR')}
                   </span>
-                </div>
-              )}
-            </div>
-            <div className="mt-2">
-              <span className="text-gray-500 text-sm">작성자:</span>
-              {creator ? (
-                <span className="ml-2 text-gray-900 text-sm font-medium">{creator.full_name}</span>
-              ) : (
-                <span className="ml-2 text-gray-500 text-sm">로딩 중...</span>
-              )}
+                ) : (
+                  <span className="text-gray-400 italic">미해결</span>
+                )}
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                <span className="text-gray-500">작성자:</span>
+                {creator ? (
+                  <span className="text-gray-900 font-medium">{creator.full_name}</span>
+                ) : (
+                  <span className="text-gray-500">로딩 중...</span>
+                )}
+              </div>
             </div>
           </div>
 
