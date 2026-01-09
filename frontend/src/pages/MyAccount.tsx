@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { User, Mail, Shield, Calendar, Edit2, Save, X, Users, Trash2 } from 'lucide-react'
+import { User, Mail, Shield, Calendar, Edit2, Save, X, Users, Trash2, Bell } from 'lucide-react'
 import ChangePasswordModal from '../components/ChangePasswordModal'
 import api from '../lib/axios'
 
@@ -14,6 +14,14 @@ interface UserData {
   is_temp_password?: boolean
 }
 
+interface NotificationSettings {
+  email_notifications: boolean
+  notify_issue_assigned: boolean
+  notify_issue_updated: boolean
+  notify_testrun_completed: boolean
+  notify_testrun_assigned: boolean
+}
+
 export default function MyAccount() {
   const { user } = useAuth()
   const [editMode, setEditMode] = useState(false)
@@ -23,6 +31,17 @@ export default function MyAccount() {
     role: user?.role || 'viewer',
   })
 
+  // Notification settings
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
+    email_notifications: true,
+    notify_issue_assigned: true,
+    notify_issue_updated: true,
+    notify_testrun_completed: true,
+    notify_testrun_assigned: true,
+  })
+  const [loadingNotifications, setLoadingNotifications] = useState(false)
+  const [savingNotifications, setSavingNotifications] = useState(false)
+
   // Admin user management
   const [allUsers, setAllUsers] = useState<UserData[]>([])
   const [loadingUsers, setLoadingUsers] = useState(false)
@@ -31,12 +50,44 @@ export default function MyAccount() {
 
   const isAdmin = user?.role === 'admin'
 
+  // Fetch notification settings
+  useEffect(() => {
+    if (user?.id) {
+      fetchNotificationSettings()
+    }
+  }, [user?.id])
+
   // Fetch all users if admin
   useEffect(() => {
     if (isAdmin) {
       fetchAllUsers()
     }
   }, [isAdmin])
+
+  const fetchNotificationSettings = async () => {
+    try {
+      setLoadingNotifications(true)
+      const response = await api.get(`/users/${user?.id}/notifications`)
+      setNotificationSettings(response.data)
+    } catch (error) {
+      console.error('Failed to fetch notification settings:', error)
+    } finally {
+      setLoadingNotifications(false)
+    }
+  }
+
+  const handleSaveNotifications = async () => {
+    try {
+      setSavingNotifications(true)
+      await api.put(`/users/${user?.id}/notifications`, notificationSettings)
+      alert('알림 설정이 저장되었습니다')
+    } catch (error: any) {
+      console.error('Failed to save notification settings:', error)
+      alert(error.response?.data?.detail || '알림 설정 저장에 실패했습니다')
+    } finally {
+      setSavingNotifications(false)
+    }
+  }
 
   const fetchAllUsers = async () => {
     try {
@@ -189,6 +240,136 @@ export default function MyAccount() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Notification Settings Section */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Bell className="w-5 h-5 text-primary-500" />
+          <h3 className="text-lg font-semibold text-gray-900">알림 설정</h3>
+        </div>
+
+        {loadingNotifications ? (
+          <div className="py-8 text-center text-gray-500">
+            로딩 중...
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {/* Master notification toggle */}
+            <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+              <div>
+                <p className="font-medium text-gray-900">이메일 알림</p>
+                <p className="text-sm text-gray-600">모든 이메일 알림을 활성화/비활성화합니다</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={notificationSettings.email_notifications}
+                  onChange={(e) => setNotificationSettings({
+                    ...notificationSettings,
+                    email_notifications: e.target.checked
+                  })}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+
+            {/* Individual notification preferences */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-gray-900">이슈 할당 알림</p>
+                  <p className="text-sm text-gray-600">이슈가 나에게 할당되었을 때 알림을 받습니다</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={notificationSettings.notify_issue_assigned}
+                    onChange={(e) => setNotificationSettings({
+                      ...notificationSettings,
+                      notify_issue_assigned: e.target.checked
+                    })}
+                    disabled={!notificationSettings.email_notifications}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-gray-900">이슈 업데이트 알림</p>
+                  <p className="text-sm text-gray-600">할당된 이슈가 업데이트되었을 때 알림을 받습니다</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={notificationSettings.notify_issue_updated}
+                    onChange={(e) => setNotificationSettings({
+                      ...notificationSettings,
+                      notify_issue_updated: e.target.checked
+                    })}
+                    disabled={!notificationSettings.email_notifications}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-gray-900">테스트 실행 완료 알림</p>
+                  <p className="text-sm text-gray-600">테스트 실행이 완료되었을 때 알림을 받습니다</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={notificationSettings.notify_testrun_completed}
+                    onChange={(e) => setNotificationSettings({
+                      ...notificationSettings,
+                      notify_testrun_completed: e.target.checked
+                    })}
+                    disabled={!notificationSettings.email_notifications}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-gray-900">테스트 실행 할당 알림</p>
+                  <p className="text-sm text-gray-600">테스트 실행이 나에게 할당되었을 때 알림을 받습니다</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={notificationSettings.notify_testrun_assigned}
+                    onChange={(e) => setNotificationSettings({
+                      ...notificationSettings,
+                      notify_testrun_assigned: e.target.checked
+                    })}
+                    disabled={!notificationSettings.email_notifications}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+                </label>
+              </div>
+            </div>
+
+            {/* Save button */}
+            <div className="pt-4 border-t border-gray-200">
+              <button
+                onClick={handleSaveNotifications}
+                disabled={savingNotifications}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {savingNotifications ? '저장 중...' : '알림 설정 저장'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Admin: User Management Section */}

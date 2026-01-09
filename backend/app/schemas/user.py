@@ -65,6 +65,15 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+class UserNotificationSettings(BaseModel):
+    """User notification preferences"""
+    email_notifications: bool = True
+    notify_issue_assigned: bool = True
+    notify_issue_updated: bool = True
+    notify_testrun_completed: bool = True
+    notify_testrun_assigned: bool = True
+
+
 class UserInDB(UserBase):
     id: str  # Firestore uses string IDs
     is_active: bool
@@ -72,6 +81,11 @@ class UserInDB(UserBase):
     is_locked: Optional[bool] = False
     failed_login_attempts: Optional[int] = 0
     locked_until: Optional[datetime] = None
+    email_notifications: Optional[bool] = True
+    notify_issue_assigned: Optional[bool] = True
+    notify_issue_updated: Optional[bool] = True
+    notify_testrun_completed: Optional[bool] = True
+    notify_testrun_assigned: Optional[bool] = True
     created_at: datetime
     updated_at: datetime
 
