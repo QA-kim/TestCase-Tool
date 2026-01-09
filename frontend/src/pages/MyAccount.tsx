@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { User, Mail, Shield, Calendar, Edit2, Save, X, Users } from 'lucide-react'
+import { User, Mail, Shield, Calendar, Edit2, Save, X, Users, Trash2 } from 'lucide-react'
 import ChangePasswordModal from '../components/ChangePasswordModal'
 import api from '../lib/axios'
 
@@ -85,6 +85,27 @@ export default function MyAccount() {
   const handleCancelEditUserRole = () => {
     setEditingUserId(null)
     setEditingUserRole('')
+  }
+
+  const handleDeleteUser = async (userId: string, userEmail: string) => {
+    if (userId === user?.id) {
+      alert('자신의 계정은 삭제할 수 없습니다')
+      return
+    }
+
+    if (!window.confirm(`정말로 "${userEmail}" 계정을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+      return
+    }
+
+    try {
+      await api.delete(`/users/${userId}`)
+      // Refresh user list
+      await fetchAllUsers()
+      alert('계정이 삭제되었습니다')
+    } catch (error: any) {
+      console.error('Failed to delete user:', error)
+      alert(error.response?.data?.detail || '계정 삭제에 실패했습니다')
+    }
   }
 
   const getRoleLabel = (role: string) => {
@@ -238,24 +259,37 @@ export default function MyAccount() {
                               <button
                                 onClick={() => handleSaveUserRole(userData.id)}
                                 className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                                title="저장"
                               >
                                 <Save className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={handleCancelEditUserRole}
                                 className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                title="취소"
                               >
                                 <X className="w-4 h-4" />
                               </button>
                             </>
                           ) : (
-                            <button
-                              onClick={() => handleEditUserRole(userData.id, userData.role)}
-                              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                              disabled={userData.id === user?.id.toString()}
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
+                            <>
+                              <button
+                                onClick={() => handleEditUserRole(userData.id, userData.role)}
+                                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                disabled={userData.id === user?.id.toString()}
+                                title="역할 수정"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(userData.id, userData.email)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={userData.id === user?.id.toString()}
+                                title={userData.id === user?.id.toString() ? "자신의 계정은 삭제할 수 없습니다" : "계정 삭제"}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>

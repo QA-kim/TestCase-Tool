@@ -58,3 +58,33 @@ def unlock_user_account(
         "message": f"계정 '{user.get('email')}'의 잠금이 해제되었습니다",
         "user_id": user_id
     }
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(
+    user_id: str,
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """Delete a user account (admin only)"""
+    # Only admin can delete accounts
+    check_admin_role(current_user)
+
+    # Prevent self-deletion
+    if current_user['id'] == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="자신의 계정은 삭제할 수 없습니다"
+        )
+
+    # Get user
+    user = users_collection.get(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="사용자를 찾을 수 없습니다"
+        )
+
+    # Delete user
+    users_collection.delete(user_id)
+
+    return None
