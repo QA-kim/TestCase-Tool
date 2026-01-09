@@ -40,9 +40,15 @@ export default function ProjectDetail() {
     () => api.delete(`/projects/${id}`),
     {
       onSuccess: () => {
+        // Navigate first to prevent 404 errors
+        navigate('/projects', { replace: true })
+        // Then invalidate queries
         queryClient.invalidateQueries('projects')
-        navigate('/projects')
+        queryClient.invalidateQueries(['project', id])
       },
+      onError: (error: any) => {
+        alert(error.response?.data?.detail || '프로젝트 삭제에 실패했습니다')
+      }
     }
   )
 
