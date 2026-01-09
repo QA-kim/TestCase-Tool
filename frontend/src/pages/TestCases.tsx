@@ -1527,10 +1527,10 @@ export default function TestCases() {
       {/* Excel Import Guide Modal */}
       {showImportGuide && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={() => setShowImportGuide(false)} />
+          <div className="flex items-center justify-center min-h-screen px-4 py-6">
+            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowImportGuide(false)} />
 
-            <div className="inline-block w-full max-w-4xl my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
+            <div className="relative inline-block w-full max-w-4xl my-8 overflow-hidden text-left align-middle bg-white rounded-lg shadow-xl z-10">
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
                 <div className="flex items-center gap-2">
