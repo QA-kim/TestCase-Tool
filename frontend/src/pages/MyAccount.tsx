@@ -88,7 +88,7 @@ export default function MyAccount() {
   }
 
   const handleDeleteUser = async (userId: string, userEmail: string) => {
-    if (userId === user?.id) {
+    if (userId === user?.id.toString()) {
       alert('자신의 계정은 삭제할 수 없습니다')
       return
     }
