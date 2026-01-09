@@ -3,10 +3,11 @@ from typing import List
 import time
 from datetime import datetime, timezone
 
-from app.db.supabase import issues_collection, issue_history_collection, projects_collection, testcases_collection, upload_file, get_file_url
+from app.db.supabase import issues_collection, issue_history_collection, projects_collection, testcases_collection, users_collection, upload_file, get_file_url
 from app.core.security import get_current_user_firestore
 from app.core.permissions import check_write_permission
 from app.schemas.issue import IssueCreate, IssueUpdate, Issue as IssueSchema, IssueHistory as IssueHistorySchema
+from app.services.notifications import notify_issue_assigned, notify_issue_updated
 
 router = APIRouter(redirect_slashes=False)
 
@@ -65,6 +66,25 @@ def create_issue(
         issue_data['assigned_to'] = None
 
     issue = issues_collection.create(issue_data)
+
+    # Send notification if issue is assigned to someone
+    if issue.get('assigned_to'):
+        try:
+            assignee = users_collection.get(issue['assigned_to'])
+            if assignee and assignee.get('email_notifications', True) and assignee.get('notify_issue_assigned', True):
+                assigner = users_collection.get(current_user['id'])
+                notify_issue_assigned(
+                    assignee_email=assignee['email'],
+                    assignee_name=assignee.get('full_name', assignee['username']),
+                    issue_title=issue['title'],
+                    issue_id=issue['id'],
+                    assigned_by=assigner.get('full_name', assigner['username']) if assigner else current_user['username']
+                )
+        except Exception as e:
+            # Log error but don't fail the request
+            import logging
+            logging.error(f"Failed to send issue assignment notification: {e}")
+
     return issue
 
 
@@ -151,7 +171,15 @@ def update_issue(
     if update_data.get('assigned_to') == '':
         update_data['assigned_to'] = None
 
+    # Track if assignee changed
+    assignee_changed = False
+    old_assignee = issue.get('assigned_to')
+    new_assignee = update_data.get('assigned_to')
+    if 'assigned_to' in update_data and old_assignee != new_assignee:
+        assignee_changed = True
+
     # Record history for changed fields
+    changed_fields = []
     for field, new_value in update_data.items():
         old_value = issue.get(field)
         if old_value != new_value:
@@ -162,6 +190,7 @@ def update_issue(
                 new_value=new_value,
                 changed_by=current_user['id']
             )
+            changed_fields.append(field)
 
     # Check if status changed to 'done' to set resolved_at
     if update_data.get('status') == 'done' and issue.get('status') != 'done':
@@ -174,6 +203,43 @@ def update_issue(
 
     # Return updated issue
     updated_issue = issues_collection.get(issue_id)
+
+    # Send notifications
+    try:
+        updater = users_collection.get(current_user['id'])
+        updater_name = updater.get('full_name', updater['username']) if updater else current_user['username']
+
+        # Notification for new assignee (if assignee changed)
+        if assignee_changed and new_assignee:
+            assignee = users_collection.get(new_assignee)
+            if assignee and assignee.get('email_notifications', True) and assignee.get('notify_issue_assigned', True):
+                notify_issue_assigned(
+                    assignee_email=assignee['email'],
+                    assignee_name=assignee.get('full_name', assignee['username']),
+                    issue_title=issue['title'],
+                    issue_id=issue_id,
+                    assigned_by=updater_name
+                )
+
+        # Notification for issue update (if assignee didn't change and someone is assigned)
+        elif not assignee_changed and issue.get('assigned_to') and len(changed_fields) > 0:
+            assignee = users_collection.get(issue['assigned_to'])
+            # Don't notify the person who made the update
+            if assignee and assignee['id'] != current_user['id'] and assignee.get('email_notifications', True) and assignee.get('notify_issue_updated', True):
+                update_type = ', '.join(changed_fields)
+                notify_issue_updated(
+                    assignee_email=assignee['email'],
+                    assignee_name=assignee.get('full_name', assignee['username']),
+                    issue_title=issue['title'],
+                    issue_id=issue_id,
+                    updated_by=updater_name,
+                    update_type=update_type
+                )
+    except Exception as e:
+        # Log error but don't fail the request
+        import logging
+        logging.error(f"Failed to send issue update notification: {e}")
+
     return updated_issue
 
 
@@ -228,6 +294,29 @@ def update_issue_status(
 
     # Return updated issue
     updated_issue = issues_collection.get(issue_id)
+
+    # Send notification for status change
+    if old_status != status and issue.get('assigned_to'):
+        try:
+            assignee = users_collection.get(issue['assigned_to'])
+            # Don't notify the person who made the update
+            if assignee and assignee['id'] != current_user['id'] and assignee.get('email_notifications', True) and assignee.get('notify_issue_updated', True):
+                updater = users_collection.get(current_user['id'])
+                updater_name = updater.get('full_name', updater['username']) if updater else current_user['username']
+
+                notify_issue_updated(
+                    assignee_email=assignee['email'],
+                    assignee_name=assignee.get('full_name', assignee['username']),
+                    issue_title=issue['title'],
+                    issue_id=issue_id,
+                    updated_by=updater_name,
+                    update_type=f'상태 변경 ({old_status} → {status})'
+                )
+        except Exception as e:
+            # Log error but don't fail the request
+            import logging
+            logging.error(f"Failed to send issue status change notification: {e}")
+
     return updated_issue
 
 

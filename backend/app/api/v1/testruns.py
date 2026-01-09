@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 import uuid
 
-from app.db.supabase import testruns_collection, testresults_collection, testrun_testcases_collection
+from app.db.supabase import testruns_collection, testresults_collection, testrun_testcases_collection, users_collection
 from app.core.security import get_current_user_firestore
 from app.core.permissions import check_write_permission
 from app.schemas.testrun import (
@@ -13,6 +13,7 @@ from app.schemas.testrun import (
     TestResultUpdate,
     TestResult as TestResultSchema
 )
+from app.services.notifications import notify_testrun_assigned, notify_testrun_completed
 
 router = APIRouter(redirect_slashes=False)
 
@@ -65,6 +66,24 @@ def create_testrun(
 
     # Add test_case_ids to response
     testrun['test_case_ids'] = test_case_ids
+
+    # Send notification if assigned to someone
+    if testrun.get('assigned_to'):
+        try:
+            assignee = users_collection.get(testrun['assigned_to'])
+            if assignee and assignee.get('email_notifications', True) and assignee.get('notify_testrun_assigned', True):
+                assigner = users_collection.get(current_user['id'])
+                notify_testrun_assigned(
+                    assignee_email=assignee['email'],
+                    assignee_name=assignee.get('full_name', assignee['username']),
+                    testrun_name=testrun['name'],
+                    testrun_id=testrun['id'],
+                    assigned_by=assigner.get('full_name', assigner['username']) if assigner else current_user['username']
+                )
+        except Exception as e:
+            import logging
+            logging.error(f"Failed to send testrun assignment notification: {e}")
+
     return testrun
 
 
@@ -129,6 +148,18 @@ def update_testrun(
     # Remove fields that don't exist in Supabase schema
     update_data.pop('milestone', None)
 
+    # Track if status changed to completed or assigned_to changed
+    status_changed_to_completed = False
+    assignee_changed = False
+    old_assignee = testrun.get('assigned_to')
+    new_assignee = update_data.get('assigned_to')
+
+    if 'status' in update_data and update_data['status'] == 'completed' and testrun.get('status') != 'completed':
+        status_changed_to_completed = True
+
+    if 'assigned_to' in update_data and old_assignee != new_assignee:
+        assignee_changed = True
+
     # Update test run (only if there are fields to update)
     if update_data:
         testruns_collection.update(testrun_id, update_data)
@@ -142,6 +173,44 @@ def update_testrun(
 
     # Add test_case_ids from junction table
     updated_testrun['test_case_ids'] = _get_testrun_testcase_ids(testrun_id)
+
+    # Send notifications
+    try:
+        # Notification for testrun completion
+        if status_changed_to_completed and updated_testrun.get('assigned_to'):
+            assignee = users_collection.get(updated_testrun['assigned_to'])
+            if assignee and assignee.get('email_notifications', True) and assignee.get('notify_testrun_completed', True):
+                # Calculate pass rate
+                results = testresults_collection.query('testrun_id', '==', testrun_id)
+                if results:
+                    passed_count = sum(1 for r in results if r.get('result') == 'passed')
+                    pass_rate = (passed_count / len(results)) * 100
+                else:
+                    pass_rate = None
+
+                notify_testrun_completed(
+                    user_email=assignee['email'],
+                    user_name=assignee.get('full_name', assignee['username']),
+                    testrun_name=updated_testrun['name'],
+                    testrun_id=testrun_id,
+                    pass_rate=pass_rate
+                )
+
+        # Notification for new assignee (if assignee changed)
+        if assignee_changed and new_assignee:
+            assignee = users_collection.get(new_assignee)
+            if assignee and assignee.get('email_notifications', True) and assignee.get('notify_testrun_assigned', True):
+                updater = users_collection.get(current_user['id'])
+                notify_testrun_assigned(
+                    assignee_email=assignee['email'],
+                    assignee_name=assignee.get('full_name', assignee['username']),
+                    testrun_name=testrun['name'],
+                    testrun_id=testrun_id,
+                    assigned_by=updater.get('full_name', updater['username']) if updater else current_user['username']
+                )
+    except Exception as e:
+        import logging
+        logging.error(f"Failed to send testrun notification: {e}")
 
     return updated_testrun
 
