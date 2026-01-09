@@ -72,10 +72,9 @@ def notify_issue_assigned(assignee_email: str, assignee_name: str, issue_title: 
 새로운 이슈가 회원님께 할당되었습니다.
 
 이슈 제목: {issue_title}
-이슈 ID: {issue_id}
 할당자: {assigned_by}
 
-이슈 확인하기: https://tms.r-e.kr/issues
+이슈 상세 보기: https://tms.r-e.kr/issues?detail={issue_id}
 
 감사합니다.
 Test Management System
@@ -92,11 +91,10 @@ def notify_issue_updated(assignee_email: str, assignee_name: str, issue_title: s
 회원님께 할당된 이슈가 업데이트되었습니다.
 
 이슈 제목: {issue_title}
-이슈 ID: {issue_id}
 업데이트 내용: {update_type}
 업데이트한 사람: {updated_by}
 
-이슈 확인하기: https://tms.r-e.kr/issues
+이슈 상세 보기: https://tms.r-e.kr/issues?detail={issue_id}
 
 감사합니다.
 Test Management System

@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useRef, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import {
   Plus, X, Bug, Lightbulb, ListTodo, Filter, Search,
@@ -35,6 +35,7 @@ type ViewMode = 'list' | 'kanban'
 export default function IssueTracker() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   // View and filter state
   const [viewMode, setViewMode] = useState<ViewMode>('list')
@@ -80,6 +81,20 @@ export default function IssueTracker() {
     const response = await api.get('/users')
     return response.data
   })
+
+  // Handle deep link from email notification
+  useEffect(() => {
+    const detailId = searchParams.get('detail')
+    if (detailId && issues && !isLoading) {
+      const issue = issues.find((i: Issue) => i.id === detailId)
+      if (issue) {
+        setSelectedIssue(issue)
+        setDetailModalOpen(true)
+        // Clear the query param after opening the modal
+        setSearchParams({})
+      }
+    }
+  }, [searchParams, issues, isLoading, setSearchParams])
 
   // Create mutation
   const createMutation = useMutation(
