@@ -89,7 +89,9 @@ Please analyze the requirements and generate comprehensive test cases covering a
             url="https://openrouter.ai/api/v1/chat/completions",
             headers={
                 "Authorization": f"Bearer {openrouter_api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://testcase-e27a4.web.app",
+                "X-Title": "TestCase Management System"
             },
             json={
                 "model": "google/gemma-2-27b-it:free",
@@ -100,7 +102,7 @@ Please analyze the requirements and generate comprehensive test cases covering a
                 "temperature": 0.7,
                 "max_tokens": 4000
             },
-            timeout=60
+            timeout=120
         )
 
         response.raise_for_status()
