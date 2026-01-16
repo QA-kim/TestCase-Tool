@@ -26,62 +26,64 @@ def generate_testcases_from_prd(prd_content: str, project_name: str = "") -> Lis
         logger.error("OpenRouter API key not configured")
         raise ValueError("OpenRouter API key not configured. Please set OPENROUTER_API_KEY in environment variables.")
 
-    # System prompt for test case generation
-    system_prompt = """You are a professional QA engineer specialized in creating comprehensive test cases from Product Requirement Documents (PRDs).
+    # System prompt for test case generation (Korean)
+    system_prompt = """당신은 제품 요구사항 문서(PRD)로부터 포괄적인 테스트 케이스를 작성하는 전문 QA 엔지니어입니다.
 
-Your task is to analyze PRD content and generate detailed, actionable test cases. For each test case, provide:
+PRD 내용을 분석하여 상세하고 실행 가능한 테스트 케이스를 생성하는 것이 당신의 임무입니다. 각 테스트 케이스에 대해 다음을 제공하세요:
 
-1. **Title**: A clear, concise title (50 characters max)
-2. **Description**: A brief description of what is being tested (200 characters max)
-3. **Priority**: One of: Low, Medium, High, Critical
-4. **Type**: One of: Functional, Regression, Smoke, Integration, Performance, Security
-5. **Steps**: Detailed step-by-step testing instructions (numbered list)
-6. **Expected Result**: Clear expected outcome
-7. **Tags**: Relevant tags (comma-separated, e.g., "login, authentication, security")
+1. **제목(title)**: 명확하고 간결한 제목 (50자 이내)
+2. **설명(description)**: 테스트하는 내용에 대한 간단한 설명 (200자 이내)
+3. **우선순위(priority)**: Low, Medium, High, Critical 중 하나
+4. **타입(type)**: Functional, Regression, Smoke, Integration, Performance, Security 중 하나
+5. **단계(steps)**: 상세한 단계별 테스트 수행 방법 (번호가 매겨진 목록)
+6. **예상 결과(expected_result)**: 명확한 예상 결과
+7. **태그(tags)**: 관련 태그 (예: "로그인", "인증", "보안")
 
-**Output Format Requirements:**
-- Return a JSON array of test cases
-- Each test case must be a JSON object with these exact keys: title, description, priority, type, steps, expected_result, tags
-- Steps should be a JSON array of strings
-- Tags should be a JSON array of strings
-- Priority must be exactly one of: "Low", "Medium", "High", "Critical"
-- Type must be exactly one of: "Functional", "Regression", "Smoke", "Integration", "Performance", "Security"
+**출력 형식 요구사항:**
+- 테스트 케이스의 JSON 배열을 반환
+- 각 테스트 케이스는 다음 키를 가진 JSON 객체여야 함: title, description, priority, type, steps, expected_result, tags
+- Steps는 문자열 배열이어야 함
+- Tags는 문자열 배열이어야 함
+- Priority는 정확히 다음 중 하나여야 함: "Low", "Medium", "High", "Critical"
+- Type은 정확히 다음 중 하나여야 함: "Functional", "Regression", "Smoke", "Integration", "Performance", "Security"
+- **모든 내용은 한국어로 작성**
 
-**Example Output:**
+**출력 예시:**
 ```json
 [
   {
-    "title": "User login with valid credentials",
-    "description": "Verify that users can successfully log in with correct email and password",
+    "title": "유효한 자격증명으로 로그인",
+    "description": "올바른 이메일과 비밀번호로 사용자가 로그인할 수 있는지 확인",
     "priority": "Critical",
     "type": "Functional",
     "steps": [
-      "Navigate to login page",
-      "Enter valid email address",
-      "Enter valid password",
-      "Click 'Login' button"
+      "로그인 페이지로 이동",
+      "유효한 이메일 주소 입력",
+      "유효한 비밀번호 입력",
+      "로그인 버튼 클릭"
     ],
-    "expected_result": "User is successfully authenticated and redirected to dashboard",
-    "tags": ["login", "authentication"]
+    "expected_result": "사용자가 성공적으로 인증되고 대시보드 페이지로 이동됨",
+    "tags": ["로그인", "인증"]
   }
 ]
 ```
 
-**Important:**
-- Focus on creating realistic, practical test cases
-- Cover both positive and negative test scenarios
-- Include edge cases and boundary conditions
-- Ensure steps are clear and actionable
-- Keep descriptions concise but informative
-- Return ONLY valid JSON, no additional text or markdown formatting"""
+**중요 사항:**
+- 현실적이고 실용적인 테스트 케이스를 작성하세요
+- 긍정적 및 부정적 테스트 시나리오를 모두 포함하세요
+- 엣지 케이스와 경계 조건을 포함하세요
+- 단계가 명확하고 실행 가능하도록 작성하세요
+- 설명은 간결하지만 유익하게 작성하세요
+- 유효한 JSON만 반환하고, 추가 텍스트나 마크다운 형식은 포함하지 마세요
+- **모든 테스트 케이스는 반드시 한국어로 작성해야 합니다**"""
 
-    # User prompt with PRD content
-    project_context = f" for project '{project_name}'" if project_name else ""
-    user_prompt = f"""Generate test cases{project_context} based on the following PRD content:
+    # User prompt with PRD content (Korean)
+    project_context = f" 프로젝트 '{project_name}'에 대한" if project_name else ""
+    user_prompt = f"""다음 PRD 내용을 바탕으로{project_context} 테스트 케이스를 생성해주세요:
 
 {prd_content}
 
-Please analyze the requirements and generate comprehensive test cases covering all functional areas mentioned in the PRD."""
+PRD에 언급된 모든 기능 영역을 포함하는 포괄적인 테스트 케이스를 한국어로 생성해주세요."""
 
     try:
         # Call OpenRouter API

@@ -1836,19 +1836,47 @@ export default function TestCases() {
                 {generatedTestCases.length === 0 ? (
                   /* Step 1: Input PRD Content */
                   <div className="space-y-4">
+                    {/* PRD Example Box */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                      <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        PRD 작성 예시
+                      </h4>
+                      <div className="text-xs text-blue-800 space-y-2">
+                        <p className="font-medium">📌 기능명: 사용자 로그인</p>
+                        <div className="pl-4 space-y-1">
+                          <p><strong>요구사항:</strong></p>
+                          <ul className="list-disc list-inside pl-2 space-y-0.5">
+                            <li>사용자는 이메일과 비밀번호로 로그인할 수 있어야 함</li>
+                            <li>잘못된 비밀번호 입력 시 "비밀번호가 올바르지 않습니다" 오류 메시지 표시</li>
+                            <li>5회 연속 실패 시 계정이 30분간 잠금됨</li>
+                            <li>로그인 성공 시 사용자 대시보드 페이지로 이동</li>
+                            <li>로그인 정보는 세션에 저장되어 브라우저를 닫아도 유지됨</li>
+                          </ul>
+                          <p className="mt-2"><strong>제약사항:</strong></p>
+                          <ul className="list-disc list-inside pl-2 space-y-0.5">
+                            <li>비밀번호는 최소 8자 이상이어야 함</li>
+                            <li>이메일 형식이 유효해야 함</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         PRD 내용 입력
                       </label>
                       <p className="text-xs text-gray-500 mb-3">
-                        제품 요구사항(PRD) 내용을 입력하면 AI가 자동으로 테스트 케이스를 생성합니다.
+                        제품 요구사항(PRD) 내용을 입력하면 AI가 자동으로 한국어 테스트 케이스를 생성합니다.
                       </p>
                       <textarea
                         value={prdContent}
                         onChange={(e) => setPrdContent(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                        rows={15}
-                        placeholder="예시:&#10;&#10;기능: 사용자 로그인&#10;&#10;요구사항:&#10;1. 사용자는 이메일과 비밀번호로 로그인할 수 있어야 함&#10;2. 잘못된 비밀번호 입력 시 오류 메시지 표시&#10;3. 5회 실패 시 계정 잠금&#10;4. 로그인 성공 시 대시보드로 이동&#10;&#10;입력하신 PRD 내용을 바탕으로 포괄적인 테스트 케이스를 생성합니다."
+                        rows={12}
+                        placeholder="예시) 위의 PRD 예시를 참고하여 작성하세요&#10;&#10;기능명, 요구사항, 제약사항 등을 명확히 작성하면&#10;더욱 정확한 테스트 케이스가 생성됩니다."
                       />
                     </div>
                   </div>
