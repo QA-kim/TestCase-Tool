@@ -4,13 +4,26 @@ from typing import List
 from io import BytesIO
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment
+from pydantic import BaseModel
 
 from app.db.supabase import testcases_collection, testcase_history_collection, projects_collection
 from app.core.security import get_current_user_firestore
 from app.core.permissions import check_write_permission
 from app.schemas.testcase import TestCaseCreate, TestCaseUpdate, TestCase as TestCaseSchema
+from app.services.ai_testcase_generator import generate_testcases_from_prd
 
 router = APIRouter(redirect_slashes=False)
+
+
+# Request/Response models for AI generation
+class AIGenerateRequest(BaseModel):
+    prd_content: str
+    project_id: str
+
+
+class AIGenerateResponse(BaseModel):
+    testcases: List[dict]
+    count: int
 
 
 @router.post("", response_model=TestCaseSchema, status_code=status.HTTP_201_CREATED)
@@ -317,4 +330,47 @@ async def import_excel(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Excel 파일 처리 중 오류가 발생했습니다: {str(e)}"
+        )
+
+
+@router.post("/ai/generate", response_model=AIGenerateResponse)
+def generate_testcases_with_ai(
+    request: AIGenerateRequest,
+    current_user: dict = Depends(get_current_user_firestore)
+):
+    """Generate test cases from PRD content using AI"""
+    # Check if user has permission to create test cases
+    check_write_permission(current_user, "테스트케이스")
+
+    # Validate project exists
+    project = projects_collection.get(request.project_id)
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+
+    try:
+        # Generate test cases using AI
+        generated_testcases = generate_testcases_from_prd(
+            prd_content=request.prd_content,
+            project_name=project.get('name', '')
+        )
+
+        # Return generated test cases (not saved to database yet - user can review and edit)
+        return AIGenerateResponse(
+            testcases=generated_testcases,
+            count=len(generated_testcases)
+        )
+
+    except ValueError as e:
+        # Specific error from AI service (API key missing, parsing error, etc.)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"AI 테스트 케이스 생성 중 오류가 발생했습니다: {str(e)}"
         )

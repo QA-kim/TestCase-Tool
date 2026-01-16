@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import {
   Plus, Edit2, Trash2, X, Search, ChevronDown, ChevronRight,
   Folder, FolderOpen, FileText, ArrowUp, ArrowDown, Circle, MoreVertical,
-  Download, Upload, AlertCircle, CheckCircle, FolderPlus, Move, BookOpen
+  Download, Upload, AlertCircle, CheckCircle, FolderPlus, Move, BookOpen, Sparkles
 } from 'lucide-react'
 import api from '../lib/axios'
 import { useAuth } from '../contexts/AuthContext'
@@ -65,6 +65,13 @@ export default function TestCases() {
   const [draggedTestCase, setDraggedTestCase] = useState<any>(null)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+
+  // AI generation states
+  const [openAIModal, setOpenAIModal] = useState(false)
+  const [prdContent, setPrdContent] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generatedTestCases, setGeneratedTestCases] = useState<any[]>([])
+  const [selectedGeneratedCases, setSelectedGeneratedCases] = useState<Set<number>>(new Set())
 
   const { data: projects } = useQuery('projects', async () => {
     const response = await api.get('/projects')
@@ -469,6 +476,101 @@ export default function TestCases() {
       ids: Array.from(selectedTestCaseIds),
       folderId: moveToFolderId
     })
+  }
+
+  // AI generation handlers
+  const handleOpenAIModal = () => {
+    if (!selectedProjectId) {
+      alert('먼저 프로젝트를 선택해주세요')
+      return
+    }
+    setOpenAIModal(true)
+    setPrdContent('')
+    setGeneratedTestCases([])
+    setSelectedGeneratedCases(new Set())
+  }
+
+  const handleCloseAIModal = () => {
+    setOpenAIModal(false)
+    setPrdContent('')
+    setGeneratedTestCases([])
+    setSelectedGeneratedCases(new Set())
+    setIsGenerating(false)
+  }
+
+  const handleGenerateWithAI = async () => {
+    if (!prdContent.trim()) {
+      alert('PRD 내용을 입력해주세요')
+      return
+    }
+
+    if (!selectedProjectId) {
+      alert('프로젝트를 선택해주세요')
+      return
+    }
+
+    try {
+      setIsGenerating(true)
+      const response = await api.post('/testcases/ai/generate', {
+        prd_content: prdContent,
+        project_id: selectedProjectId
+      })
+
+      setGeneratedTestCases(response.data.testcases)
+      // Select all generated test cases by default
+      setSelectedGeneratedCases(new Set(response.data.testcases.map((_: any, idx: number) => idx)))
+    } catch (error: any) {
+      console.error('AI generation failed:', error)
+      alert(error.response?.data?.detail || 'AI 테스트 케이스 생성에 실패했습니다')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const handleToggleGeneratedCase = (index: number) => {
+    const newSelected = new Set(selectedGeneratedCases)
+    if (newSelected.has(index)) {
+      newSelected.delete(index)
+    } else {
+      newSelected.add(index)
+    }
+    setSelectedGeneratedCases(newSelected)
+  }
+
+  const handleSaveGeneratedCases = async () => {
+    if (selectedGeneratedCases.size === 0) {
+      alert('저장할 테스트 케이스를 선택해주세요')
+      return
+    }
+
+    try {
+      const casesToSave = Array.from(selectedGeneratedCases).map(idx => generatedTestCases[idx])
+
+      // Create test cases one by one
+      for (const testcase of casesToSave) {
+        await api.post('/testcases', {
+          project_id: selectedProjectId,
+          folder_id: selectedFolderId || undefined,
+          title: testcase.title,
+          description: testcase.description,
+          preconditions: '',
+          steps: testcase.steps.join('\n'),
+          expected_result: testcase.expected_result,
+          priority: testcase.priority.toLowerCase(),
+          test_type: testcase.type.toLowerCase(),
+          tags: testcase.tags
+        })
+      }
+
+      // Refresh test cases
+      queryClient.invalidateQueries('testcases')
+
+      alert(`${selectedGeneratedCases.size}개의 테스트 케이스가 생성되었습니다`)
+      handleCloseAIModal()
+    } catch (error: any) {
+      console.error('Failed to save generated test cases:', error)
+      alert(error.response?.data?.detail || '테스트 케이스 저장에 실패했습니다')
+    }
   }
 
   // Build proper folder tree structure with children
@@ -878,16 +980,25 @@ export default function TestCases() {
                       가이드
                     </button>
                     {canWrite && selectedProjectId && (
-                      <button
-                        onClick={() => {
-                          setFormData({ ...formData, project_id: selectedProjectId, folder_id: selectedFolderId || undefined })
-                          setOpen(true)
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
-                      >
-                        <Plus className="w-4 h-4" />
-                        새 테스트 케이스
-                      </button>
+                      <>
+                        <button
+                          onClick={handleOpenAIModal}
+                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-md hover:from-purple-700 hover:to-blue-700 transition-all text-sm font-medium shadow-md"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          AI 생성
+                        </button>
+                        <button
+                          onClick={() => {
+                            setFormData({ ...formData, project_id: selectedProjectId, folder_id: selectedFolderId || undefined })
+                            setOpen(true)
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                        >
+                          <Plus className="w-4 h-4" />
+                          새 테스트 케이스
+                        </button>
+                      </>
                     )}
                   </>
                 )}
@@ -1693,6 +1804,188 @@ export default function TestCases() {
                 >
                   확인
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Test Case Generation Modal */}
+      {openAIModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 py-6">
+            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={handleCloseAIModal} />
+
+            <div className="relative inline-block w-full max-w-6xl my-8 overflow-hidden text-left align-middle bg-white rounded-lg shadow-xl z-10">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-purple-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">AI 테스트 케이스 생성</h3>
+                </div>
+                <button
+                  onClick={handleCloseAIModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-4">
+                {generatedTestCases.length === 0 ? (
+                  /* Step 1: Input PRD Content */
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        PRD 내용 입력
+                      </label>
+                      <p className="text-xs text-gray-500 mb-3">
+                        제품 요구사항(PRD) 내용을 입력하면 AI가 자동으로 테스트 케이스를 생성합니다.
+                      </p>
+                      <textarea
+                        value={prdContent}
+                        onChange={(e) => setPrdContent(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                        rows={15}
+                        placeholder="예시:&#10;&#10;기능: 사용자 로그인&#10;&#10;요구사항:&#10;1. 사용자는 이메일과 비밀번호로 로그인할 수 있어야 함&#10;2. 잘못된 비밀번호 입력 시 오류 메시지 표시&#10;3. 5회 실패 시 계정 잠금&#10;4. 로그인 성공 시 대시보드로 이동&#10;&#10;입력하신 PRD 내용을 바탕으로 포괄적인 테스트 케이스를 생성합니다."
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  /* Step 2: Review Generated Test Cases */
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900">
+                          생성된 테스트 케이스 ({generatedTestCases.length}개)
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-1">
+                          저장할 테스트 케이스를 선택하세요
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (selectedGeneratedCases.size === generatedTestCases.length) {
+                            setSelectedGeneratedCases(new Set())
+                          } else {
+                            setSelectedGeneratedCases(new Set(generatedTestCases.map((_: any, idx: number) => idx)))
+                          }
+                        }}
+                        className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+                      >
+                        {selectedGeneratedCases.size === generatedTestCases.length ? '전체 해제' : '전체 선택'}
+                      </button>
+                    </div>
+
+                    <div className="max-h-[60vh] overflow-y-auto space-y-3">
+                      {generatedTestCases.map((testcase: any, index: number) => (
+                        <div
+                          key={index}
+                          className={`border rounded-lg p-4 transition-all cursor-pointer ${
+                            selectedGeneratedCases.has(index)
+                              ? 'border-purple-500 bg-purple-50'
+                              : 'border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                          onClick={() => handleToggleGeneratedCase(index)}
+                        >
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedGeneratedCases.has(index)}
+                              onChange={() => handleToggleGeneratedCase(index)}
+                              className="mt-1 w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h5 className="text-sm font-semibold text-gray-900">{testcase.title}</h5>
+                                <span className={`px-2 py-0.5 text-xs rounded-full ${
+                                  testcase.priority === 'Critical' ? 'bg-red-100 text-red-700' :
+                                  testcase.priority === 'High' ? 'bg-orange-100 text-orange-700' :
+                                  testcase.priority === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                                  'bg-green-100 text-green-700'
+                                }`}>
+                                  {testcase.priority}
+                                </span>
+                                <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700">
+                                  {testcase.type}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-600 mb-2">{testcase.description}</p>
+                              <div className="text-xs space-y-1">
+                                <div>
+                                  <span className="font-medium text-gray-700">수행 방법:</span>
+                                  <ol className="list-decimal list-inside ml-2 text-gray-600">
+                                    {testcase.steps.map((step: string, idx: number) => (
+                                      <li key={idx}>{step}</li>
+                                    ))}
+                                  </ol>
+                                </div>
+                                <div>
+                                  <span className="font-medium text-gray-700">예상 결과:</span>
+                                  <span className="text-gray-600"> {testcase.expected_result}</span>
+                                </div>
+                                {testcase.tags.length > 0 && (
+                                  <div className="flex items-center gap-1 flex-wrap mt-2">
+                                    {testcase.tags.map((tag: string, idx: number) => (
+                                      <span key={idx} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
+                                        #{tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-between items-center px-6 py-4 bg-gray-50 border-t border-gray-200">
+                <div className="text-xs text-gray-500">
+                  {generatedTestCases.length > 0 && (
+                    <span>{selectedGeneratedCases.size}개 선택됨</span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCloseAIModal}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors text-sm font-medium"
+                  >
+                    취소
+                  </button>
+                  {generatedTestCases.length === 0 ? (
+                    <button
+                      onClick={handleGenerateWithAI}
+                      disabled={isGenerating || !prdContent.trim()}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-md hover:from-purple-700 hover:to-blue-700 transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          생성 중...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          AI로 생성
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleSaveGeneratedCases}
+                      disabled={selectedGeneratedCases.size === 0}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      저장 ({selectedGeneratedCases.size}개)
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
