@@ -31,31 +31,37 @@ def generate_testcases_from_prd(prd_content: str, project_name: str = "") -> Lis
 
 PRD 내용을 분석하여 상세하고 실행 가능한 테스트 케이스를 생성하는 것이 당신의 임무입니다. 각 테스트 케이스에 대해 다음을 제공하세요:
 
-1. **제목(title)**: 명확하고 간결한 제목 (50자 이내)
-2. **설명(description)**: 테스트하는 내용에 대한 간단한 설명 (200자 이내)
-3. **우선순위(priority)**: Low, Medium, High, Critical 중 하나
-4. **타입(type)**: Functional, Regression, Smoke, Integration, Performance, Security 중 하나
-5. **단계(steps)**: 상세한 단계별 테스트 수행 방법 (번호가 매겨진 목록)
-6. **예상 결과(expected_result)**: 명확한 예상 결과
-7. **태그(tags)**: 관련 태그 (예: "로그인", "인증", "보안")
+1. **제목(title)**: 명확하고 간결한 제목 (필수, 1~200자)
+2. **설명(description)**: 테스트하는 내용에 대한 간단한 설명 (선택, 최대 500자)
+3. **우선순위(priority)**: 필수, 정확히 다음 중 하나 - "low", "medium", "high" (모두 소문자)
+4. **타입(type)**: 필수, 정확히 다음 중 하나 - "functional", "regression", "smoke", "integration", "performance", "security" (모두 소문자)
+5. **단계(steps)**: 상세한 단계별 테스트 수행 방법 (선택, 문자열 배열, 각 단계는 간결하게)
+6. **예상 결과(expected_result)**: 명확한 예상 결과 (선택, 최대 500자)
+7. **태그(tags)**: 관련 태그 (선택, 문자열 배열, 각 태그는 짧게)
+
+**필드 제약사항 (매우 중요!):**
+- title: 필수, 1~200자 (초과 시 오류)
+- description: 선택, 최대 500자
+- priority: 필수, 반드시 "low", "medium", "high" 중 하나 (소문자만 허용)
+- type: 필수, 반드시 "functional", "regression", "smoke", "integration", "performance", "security" 중 하나 (소문자만 허용)
+- steps: 선택, 문자열 배열
+- expected_result: 선택, 최대 500자
+- tags: 선택, 문자열 배열
 
 **출력 형식 요구사항:**
-- 테스트 케이스의 JSON 배열을 반환
-- 각 테스트 케이스는 다음 키를 가진 JSON 객체여야 함: title, description, priority, type, steps, expected_result, tags
-- Steps는 문자열 배열이어야 함
-- Tags는 문자열 배열이어야 함
-- Priority는 정확히 다음 중 하나여야 함: "Low", "Medium", "High", "Critical"
-- Type은 정확히 다음 중 하나여야 함: "Functional", "Regression", "Smoke", "Integration", "Performance", "Security"
+- 유효한 JSON 배열만 반환 (마크다운 코드블록 없이)
+- 각 테스트 케이스는 JSON 객체
+- priority와 type은 반드시 소문자로 작성
+- steps와 tags는 문자열 배열
 - **모든 내용은 한국어로 작성**
 
 **출력 예시:**
-```json
 [
   {
-    "title": "유효한 자격증명으로 로그인",
+    "title": "유효한 이메일과 비밀번호로 로그인 성공",
     "description": "올바른 이메일과 비밀번호로 사용자가 로그인할 수 있는지 확인",
-    "priority": "Critical",
-    "type": "Functional",
+    "priority": "high",
+    "type": "functional",
     "steps": [
       "로그인 페이지로 이동",
       "유효한 이메일 주소 입력",
@@ -64,17 +70,30 @@ PRD 내용을 분석하여 상세하고 실행 가능한 테스트 케이스를 
     ],
     "expected_result": "사용자가 성공적으로 인증되고 대시보드 페이지로 이동됨",
     "tags": ["로그인", "인증"]
+  },
+  {
+    "title": "잘못된 비밀번호로 로그인 실패",
+    "description": "잘못된 비밀번호 입력 시 로그인이 실패하고 오류 메시지가 표시되는지 확인",
+    "priority": "high",
+    "type": "functional",
+    "steps": [
+      "로그인 페이지로 이동",
+      "유효한 이메일 주소 입력",
+      "잘못된 비밀번호 입력",
+      "로그인 버튼 클릭"
+    ],
+    "expected_result": "로그인 실패 메시지가 표시되고 로그인 페이지에 그대로 남아있음",
+    "tags": ["로그인", "보안", "에러처리"]
   }
 ]
-```
 
 **중요 사항:**
+- priority와 type은 반드시 소문자로만 작성하세요
 - 현실적이고 실용적인 테스트 케이스를 작성하세요
 - 긍정적 및 부정적 테스트 시나리오를 모두 포함하세요
 - 엣지 케이스와 경계 조건을 포함하세요
-- 단계가 명확하고 실행 가능하도록 작성하세요
-- 설명은 간결하지만 유익하게 작성하세요
-- 유효한 JSON만 반환하고, 추가 텍스트나 마크다운 형식은 포함하지 마세요
+- 제목은 200자를 절대 초과하지 마세요
+- JSON만 반환하고 추가 텍스트나 마크다운 없이 출력하세요
 - **모든 테스트 케이스는 반드시 한국어로 작성해야 합니다**"""
 
     # User prompt with PRD content (Korean)
