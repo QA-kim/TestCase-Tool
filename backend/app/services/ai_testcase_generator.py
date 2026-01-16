@@ -94,7 +94,7 @@ Please analyze the requirements and generate comprehensive test cases covering a
                 "X-Title": "TestCase Management System"
             },
             json={
-                "model": "google/gemma-2-27b-it:free",
+                "model": "google/gemma-3-27b-it:free",
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
