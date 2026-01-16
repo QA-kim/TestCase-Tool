@@ -102,7 +102,9 @@ PRD 내용을 분석하여 상세하고 실행 가능한 테스트 케이스를 
 
 {prd_content}
 
-PRD에 언급된 모든 기능 영역을 포함하는 포괄적인 테스트 케이스를 한국어로 생성해주세요."""
+PRD에 언급된 모든 기능 영역을 포함하는 포괄적인 테스트 케이스를 한국어로 생성해주세요.
+
+중요: 반드시 JSON 배열만 반환하세요. 설명이나 추가 텍스트 없이 JSON만 출력하세요."""
 
     try:
         # Call OpenRouter API
@@ -136,24 +138,49 @@ PRD에 언급된 모든 기능 영역을 포함하는 포괄적인 테스트 케
 
         generated_text = result['choices'][0]['message']['content']
         logger.info(f"AI generated text length: {len(generated_text)}")
+        logger.info(f"AI raw response (first 1000 chars): {generated_text[:1000]}")
 
         # Parse JSON from generated text
         # Sometimes AI wraps JSON in markdown code blocks, so clean it
         import json
         import re
 
-        # Remove markdown code blocks if present
-        generated_text = re.sub(r'^```json\s*', '', generated_text.strip())
-        generated_text = re.sub(r'\s*```$', '', generated_text.strip())
-        generated_text = generated_text.strip()
+        if not generated_text or not generated_text.strip():
+            logger.error("AI returned empty response")
+            raise ValueError("AI 모델이 빈 응답을 반환했습니다. 다시 시도해주세요.")
+
+        # Remove markdown code blocks if present (multiple patterns)
+        cleaned_text = generated_text.strip()
+
+        # Pattern 1: ```json ... ```
+        cleaned_text = re.sub(r'^```json\s*\n?', '', cleaned_text)
+        cleaned_text = re.sub(r'\n?```$', '', cleaned_text)
+
+        # Pattern 2: ``` ... ``` (without json marker)
+        cleaned_text = re.sub(r'^```\s*\n?', '', cleaned_text)
+        cleaned_text = re.sub(r'\n?```$', '', cleaned_text)
+
+        cleaned_text = cleaned_text.strip()
+
+        # If text doesn't start with '[', try to find JSON array in the text
+        if not cleaned_text.startswith('['):
+            logger.warning("Response doesn't start with '[', searching for JSON array...")
+            # Try to find JSON array pattern in the text
+            json_match = re.search(r'\[[\s\S]*\]', cleaned_text)
+            if json_match:
+                cleaned_text = json_match.group(0)
+                logger.info("Found JSON array in response")
+            else:
+                logger.error(f"Could not find JSON array in response: {cleaned_text[:500]}")
+                raise ValueError("AI 응답에서 JSON 배열을 찾을 수 없습니다. 다시 시도해주세요.")
 
         # Parse JSON
         try:
-            testcases = json.loads(generated_text)
+            testcases = json.loads(cleaned_text)
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON from AI response: {e}")
-            logger.error(f"Generated text: {generated_text[:500]}...")
-            raise ValueError(f"Failed to parse AI response as JSON: {str(e)}")
+            logger.error(f"Cleaned text: {cleaned_text[:500]}...")
+            raise ValueError(f"AI 응답을 JSON으로 파싱할 수 없습니다: {str(e)}")
 
         # Validate and normalize test cases
         if not isinstance(testcases, list):
@@ -162,26 +189,36 @@ PRD에 언급된 모든 기능 영역을 포함하는 포괄적인 테스트 케
 
         validated_testcases = []
         for tc in testcases:
-            # Ensure all required fields are present
+            # Ensure all required fields are present and normalize values
+            title = tc.get('title', 'Untitled Test Case')[:200]  # 200자 제한
+            description = tc.get('description', '')[:500]  # 500자 제한
+            priority = tc.get('priority', 'medium').lower()  # 소문자로 변환
+            test_type = tc.get('type', 'functional').lower()  # 소문자로 변환
+            steps = tc.get('steps', [])
+            expected_result = tc.get('expected_result', '')[:500]  # 500자 제한
+            tags = tc.get('tags', [])
+
+            # Validate priority and type (소문자)
+            valid_priorities = ['low', 'medium', 'high']
+            valid_types = ['functional', 'regression', 'smoke', 'integration', 'performance', 'security']
+
+            if priority not in valid_priorities:
+                logger.warning(f"Invalid priority '{priority}', defaulting to 'medium'")
+                priority = 'medium'
+
+            if test_type not in valid_types:
+                logger.warning(f"Invalid type '{test_type}', defaulting to 'functional'")
+                test_type = 'functional'
+
             validated_tc = {
-                'title': tc.get('title', 'Untitled Test Case')[:50],
-                'description': tc.get('description', '')[:200],
-                'priority': tc.get('priority', 'Medium'),
-                'type': tc.get('type', 'Functional'),
-                'steps': tc.get('steps', []),
-                'expected_result': tc.get('expected_result', ''),
-                'tags': tc.get('tags', [])
+                'title': title,
+                'description': description,
+                'priority': priority,
+                'type': test_type,
+                'steps': steps,
+                'expected_result': expected_result,
+                'tags': tags
             }
-
-            # Validate priority and type
-            valid_priorities = ['Low', 'Medium', 'High', 'Critical']
-            valid_types = ['Functional', 'Regression', 'Smoke', 'Integration', 'Performance', 'Security']
-
-            if validated_tc['priority'] not in valid_priorities:
-                validated_tc['priority'] = 'Medium'
-
-            if validated_tc['type'] not in valid_types:
-                validated_tc['type'] = 'Functional'
 
             # Ensure steps is a list
             if isinstance(validated_tc['steps'], str):
