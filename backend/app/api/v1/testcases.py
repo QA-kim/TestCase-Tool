@@ -53,7 +53,20 @@ def create_testcase(
         testcase_data['tags'] = [t.strip() for t in testcase_data['tags'].split(',') if t.strip()]
 
     print(f"📝 Final testcase data tags: {testcase_data['tags']}")
-    testcase = testcases_collection.create(testcase_data)
+    
+    try:
+        testcase = testcases_collection.create(testcase_data)
+    except Exception as e:
+        # Handle missing created_by column (Schema mismatch)
+        error_str = str(e)
+        if "Could not find the 'created_by' column" in error_str:
+            print("⚠️ 'created_by' column missing in database schema. Retrying without it.")
+            if 'created_by' in testcase_data:
+                del testcase_data['created_by']
+            testcase = testcases_collection.create(testcase_data)
+        else:
+            raise e
+            
     return testcase
 
 
