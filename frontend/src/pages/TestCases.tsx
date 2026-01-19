@@ -746,7 +746,11 @@ export default function TestCases() {
     } catch (error) {
       console.error('Failed to move test case(s):', error)
     } finally {
-
+      setDraggedTestCase(null)
+      setIsDragging(false)
+      setDropTarget(null)
+    }
+  }
 
   // Recursive folder rendering component
   const FolderTreeItem = ({ folder, level = 0 }: { folder: any; level?: number }) => {
