@@ -38,6 +38,9 @@ def create_testcase(
     import json
     testcase_data = json.loads(testcase_in.json())
     
+    # Debug logging
+    print(f"📝 Creating testcase - Input tags: {testcase_data.get('tags')} (type: {type(testcase_data.get('tags'))})")
+    
     # Add created_by
     testcase_data['created_by'] = current_user.get('id')
     
@@ -46,8 +49,10 @@ def create_testcase(
         testcase_data['tags'] = []
     elif isinstance(testcase_data.get('tags'), str):
         # Convert comma-separated string to list
+        print(f"⚠️ Converting string tags to list: {testcase_data['tags']}")
         testcase_data['tags'] = [t.strip() for t in testcase_data['tags'].split(',') if t.strip()]
 
+    print(f"📝 Final testcase data tags: {testcase_data['tags']}")
     testcase = testcases_collection.create(testcase_data)
     return testcase
 
