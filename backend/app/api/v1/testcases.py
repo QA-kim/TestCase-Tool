@@ -34,7 +34,17 @@ def create_testcase(
     # Check if user has permission to create test cases (viewer and developer cannot create)
     check_write_permission(current_user, "테스트케이스")
 
-    testcase_data = testcase_in.dict()  # Pydantic v1 uses .dict()
+    # Convert Pydantic model to dict using json-compatible way to handle Enums
+    import json
+    testcase_data = json.loads(testcase_in.json())
+    
+    # Add created_by
+    testcase_data['created_by'] = current_user.get('id')
+    
+    # Ensure tags is a list
+    if testcase_data.get('tags') is None:
+        testcase_data['tags'] = []
+
     testcase = testcases_collection.create(testcase_data)
     return testcase
 
