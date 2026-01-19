@@ -73,6 +73,7 @@ export default function TestCases() {
   const [generatedTestCases, setGeneratedTestCases] = useState<any[]>([])
   const [selectedGeneratedCases, setSelectedGeneratedCases] = useState<Set<number>>(new Set())
   const [aiTargetFolderId, setAiTargetFolderId] = useState<string | undefined>(undefined)
+  const [isSaving, setIsSaving] = useState(false)
 
   const { data: projects } = useQuery('projects', async () => {
     const response = await api.get('/projects')
@@ -555,6 +556,7 @@ export default function TestCases() {
     }
 
     try {
+      setIsSaving(true)
       const casesToSave = Array.from(selectedGeneratedCases).map(idx => generatedTestCases[idx])
 
       // Create test cases one by one
@@ -581,6 +583,8 @@ export default function TestCases() {
     } catch (error: any) {
       console.error('Failed to save generated test cases:', error)
       alert(error.response?.data?.detail || '테스트 케이스 저장에 실패했습니다')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -2148,10 +2152,17 @@ export default function TestCases() {
                   ) : (
                     <button
                       onClick={handleSaveGeneratedCases}
-                      disabled={selectedGeneratedCases.size === 0}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={selectedGeneratedCases.size === 0 || isSaving}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                      저장 ({selectedGeneratedCases.size}개)
+                      {isSaving ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          저장 중...
+                        </>
+                      ) : (
+                        `저장 (${selectedGeneratedCases.size}개)`
+                      )}
                     </button>
                   )}
                 </div>
