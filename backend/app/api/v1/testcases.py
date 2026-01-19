@@ -41,9 +41,12 @@ def create_testcase(
     # Add created_by
     testcase_data['created_by'] = current_user.get('id')
     
-    # Ensure tags is a list
+    # Ensure tags is a list (handle legacy string format)
     if testcase_data.get('tags') is None:
         testcase_data['tags'] = []
+    elif isinstance(testcase_data.get('tags'), str):
+        # Convert comma-separated string to list
+        testcase_data['tags'] = [t.strip() for t in testcase_data['tags'].split(',') if t.strip()]
 
     testcase = testcases_collection.create(testcase_data)
     return testcase
