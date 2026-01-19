@@ -92,7 +92,153 @@ export default function TestCases() {
     }
   )
 
-  // ... (mutations remain the same) ...
+  const createMutation = useMutation(
+    (data: any) => api.post('/testcases', data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('testcases')
+        handleClose()
+      },
+    }
+  )
+
+  const updateMutation = useMutation(
+    ({ id, data }: { id: number; data: any }) => api.put(`/testcases/${id}`, data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('testcases')
+        handleClose()
+        if (selectedTestCase?.id === editId) {
+          const updatedTestCase = { ...selectedTestCase, ...formData }
+          setSelectedTestCase(updatedTestCase)
+        }
+      },
+    }
+  )
+
+  const deleteMutation = useMutation(
+    (testcaseId: number) => api.delete(`/testcases/${testcaseId}`),
+    {
+      onSuccess: (_data, testcaseId) => {
+        queryClient.invalidateQueries('testcases')
+        if (selectedTestCase?.id === testcaseId) {
+          setSelectedTestCase(null)
+        }
+      },
+    }
+  )
+
+  // Folder mutations
+  const createFolderMutation = useMutation(
+    (data: any) => foldersApi.create(data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['folders', selectedProjectId])
+        handleCloseFolderModal()
+      },
+    }
+  )
+
+  const updateFolderMutation = useMutation(
+    ({ id, data }: { id: string; data: any }) => foldersApi.update(id, data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['folders', selectedProjectId])
+        handleCloseFolderModal()
+      },
+    }
+  )
+
+  const deleteFolderMutation = useMutation(
+    (folderId: string) => foldersApi.delete(folderId),
+    {
+      onSuccess: (_data, deletedFolderId) => {
+        queryClient.invalidateQueries(['folders', selectedProjectId])
+        if (selectedFolderId === deletedFolderId) {
+          setSelectedFolderId(null)
+        }
+      },
+    }
+  )
+
+  // Bulk delete mutation
+  const bulkDeleteMutation = useMutation(
+    async (ids: string[]) => {
+      await Promise.all(ids.map(id => api.delete(`/testcases/${id}`)))
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('testcases')
+        setSelectedTestCaseIds(new Set())
+        setShowBulkActions(false)
+        setSelectedTestCase(null)
+      },
+    }
+  )
+
+  // Bulk move mutation
+  const bulkMoveMutation = useMutation(
+    async ({ ids, folderId }: { ids: string[]; folderId?: string }) => {
+      await Promise.all(ids.map(id => api.put(`/testcases/${id}`, { folder_id: folderId })))
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('testcases')
+        setSelectedTestCaseIds(new Set())
+        setShowBulkActions(false)
+        setShowMoveModal(false)
+      },
+    }
+  )
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await api.get('/testcases/template/download', {
+        responseType: 'blob',
+      })
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', 'testcase_template.xlsx')
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch (error) {
+      console.error('Template download failed:', error)
+    }
+  }
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const response = await api.post('/testcases/import/excel', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      setImportResult(response.data)
+      setShowImportResult(true)
+      queryClient.invalidateQueries('testcases')
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    } catch (error: any) {
+      setImportResult({
+        success: false,
+        imported_count: 0,
+        errors: [error.response?.data?.detail || 'Import failed'],
+      })
+      setShowImportResult(true)
+    }
+  }
 
   const handleClose = () => {
     setOpen(false)
@@ -112,7 +258,53 @@ export default function TestCases() {
     setErrors({})
   }
 
-  // ... (other handlers) ...
+  const handleCloseFolderModal = () => {
+    setOpenFolderModal(false)
+    setEditFolderMode(false)
+    setEditFolderId(null)
+    setFolderFormData({
+      name: '',
+      description: '',
+      parent_id: undefined,
+    })
+    setFolderErrors({})
+  }
+
+  const handleEdit = (testcase: any) => {
+    setEditMode(true)
+    setEditId(testcase.id)
+    setFormData({
+      title: testcase.title,
+      description: testcase.description || '',
+      preconditions: testcase.preconditions || '',
+      steps: testcase.steps || '',
+      expected_result: testcase.expected_result || '',
+      priority: testcase.priority,
+      test_type: testcase.test_type,
+      project_id: testcase.project_id,
+      folder_id: testcase.folder_id,
+    })
+    setErrors({})
+    setOpen(true)
+  }
+
+  const handleEditFolder = (folder: FolderType) => {
+    setEditFolderMode(true)
+    setEditFolderId(folder.id)
+    setFolderFormData({
+      name: folder.name,
+      description: folder.description || '',
+      parent_id: folder.parent_id,
+    })
+    setFolderErrors({})
+    setOpenFolderModal(true)
+  }
+
+  const handleDeleteFolder = (folderId: string) => {
+    if (window.confirm('정말 삭제하시겠습니까? 하위 폴더와 테스트 케이스도 영향을 받을 수 있습니다.')) {
+      deleteFolderMutation.mutate(folderId)
+    }
+  }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -129,7 +321,166 @@ export default function TestCases() {
     return Object.keys(newErrors).length === 0
   }
 
-  // ... (handleSubmit, folder handlers) ...
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!validateForm()) return
+    if (editMode && editId) {
+      updateMutation.mutate({ id: editId, data: formData })
+    } else {
+      createMutation.mutate(formData)
+    }
+  }
+
+  const validateFolderForm = () => {
+    const newErrors: Record<string, string> = {}
+    if (!folderFormData.name.trim()) {
+      newErrors.name = '폴더 이름을 입력해주세요'
+    }
+    setFolderErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleFolderSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!validateFolderForm()) return
+
+    const data = {
+      ...folderFormData,
+      project_id: String(selectedProjectId),
+    }
+
+    if (editFolderMode && editFolderId) {
+      updateFolderMutation.mutate({ id: editFolderId, data: folderFormData })
+    } else {
+      createFolderMutation.mutate(data)
+    }
+  }
+
+  const handleDelete = (id: number) => {
+    if (window.confirm('정말 삭제하시겠습니까?')) {
+      deleteMutation.mutate(id)
+    }
+  }
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'critical': return 'text-red-600'
+      case 'high': return 'text-orange-600'
+      case 'medium': return 'text-blue-600'
+      case 'low': return 'text-green-600'
+      default: return 'text-gray-600'
+    }
+  }
+
+  const getPriorityIcon = (priority: string) => {
+    switch (priority) {
+      case 'critical':
+      case 'high':
+        return <ArrowUp className="w-3 h-3" />
+      case 'low':
+        return <ArrowDown className="w-3 h-3" />
+      default:
+        return <Circle className="w-3 h-3 fill-current" />
+    }
+  }
+
+  const getPriorityLabel = (priority: string) => {
+    const labels: Record<string, string> = {
+      critical: '긴급',
+      high: '높음',
+      medium: '보통',
+      low: '낮음',
+    }
+    return labels[priority] || priority
+  }
+
+  const getTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      functional: '기능',
+      regression: '회귀',
+      smoke: '스모크',
+      performance: '성능',
+      security: '보안',
+    }
+    return labels[type] || type
+  }
+
+  const filteredTestCases = useMemo(() => {
+    if (!testcases) return []
+    return testcases.filter((testcase: any) => {
+      const matchesProject = !selectedProjectId || testcase.project_id === selectedProjectId
+      const matchesFolder = selectedFolderId === null || testcase.folder_id === selectedFolderId
+      const matchesSearch = testcase.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           testcase.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesPriority = priorityFilter === 'all' || testcase.priority === priorityFilter
+      const matchesType = typeFilter === 'all' || testcase.test_type === typeFilter
+      return matchesProject && matchesFolder && matchesSearch && matchesPriority && matchesType
+    })
+  }, [testcases, selectedProjectId, selectedFolderId, searchQuery, priorityFilter, typeFilter])
+
+  const selectedProject = useMemo(() => {
+    return projects?.find((p: any) => p.id === selectedProjectId)
+  }, [projects, selectedProjectId])
+
+  const toggleProject = (projectId: string) => {
+    const newExpanded = new Set(expandedProjects)
+    if (newExpanded.has(projectId)) {
+      newExpanded.delete(projectId)
+    } else {
+      newExpanded.add(projectId)
+    }
+    setExpandedProjects(newExpanded)
+  }
+
+  const toggleFolder = (folderId: string) => {
+    const newExpanded = new Set(expandedFolders)
+    if (newExpanded.has(folderId)) {
+      newExpanded.delete(folderId)
+    } else {
+      newExpanded.add(folderId)
+    }
+    setExpandedFolders(newExpanded)
+  }
+
+  // Multi-select handlers
+  const handleSelectTestCase = (testcaseId: string) => {
+    const newSelected = new Set(selectedTestCaseIds)
+    if (newSelected.has(testcaseId)) {
+      newSelected.delete(testcaseId)
+    } else {
+      newSelected.add(testcaseId)
+    }
+    setSelectedTestCaseIds(newSelected)
+    setShowBulkActions(newSelected.size > 0)
+  }
+
+  const handleSelectAll = () => {
+    if (selectedTestCaseIds.size === filteredTestCases.length) {
+      setSelectedTestCaseIds(new Set<string>())
+      setShowBulkActions(false)
+    } else {
+      const allIds = new Set<string>(filteredTestCases.map((tc: any) => String(tc.id)))
+      setSelectedTestCaseIds(allIds)
+      setShowBulkActions(true)
+    }
+  }
+
+  const handleBulkDelete = () => {
+    if (window.confirm(`선택한 ${selectedTestCaseIds.size}개의 테스트 케이스를 삭제하시겠습니까?`)) {
+      bulkDeleteMutation.mutate(Array.from(selectedTestCaseIds))
+    }
+  }
+
+  const handleBulkMove = () => {
+    setShowMoveModal(true)
+  }
+
+  const confirmBulkMove = () => {
+    bulkMoveMutation.mutate({
+      ids: Array.from(selectedTestCaseIds),
+      folderId: moveToFolderId
+    })
+  }
 
   // AI generation handlers
   const handleOpenAIModal = () => {
@@ -153,7 +504,44 @@ export default function TestCases() {
     setAiTargetFolderId(undefined)
   }
 
-  // ... (handleGenerateWithAI, handleToggleGeneratedCase) ...
+  const handleGenerateWithAI = async () => {
+    if (!prdContent.trim()) {
+      alert('PRD 내용을 입력해주세요')
+      return
+    }
+
+    if (!selectedProjectId) {
+      alert('프로젝트를 선택해주세요')
+      return
+    }
+
+    try {
+      setIsGenerating(true)
+      const response = await api.post('/testcases/ai/generate', {
+        prd_content: prdContent,
+        project_id: selectedProjectId
+      })
+
+      setGeneratedTestCases(response.data.testcases)
+      // Select all generated test cases by default
+      setSelectedGeneratedCases(new Set(response.data.testcases.map((_: any, idx: number) => idx)))
+    } catch (error: any) {
+      console.error('AI generation failed:', error)
+      alert(error.response?.data?.detail || 'AI 테스트 케이스 생성에 실패했습니다')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const handleToggleGeneratedCase = (index: number) => {
+    const newSelected = new Set(selectedGeneratedCases)
+    if (newSelected.has(index)) {
+      newSelected.delete(index)
+    } else {
+      newSelected.add(index)
+    }
+    setSelectedGeneratedCases(newSelected)
+  }
 
   const handleSaveGeneratedCases = async () => {
     if (selectedGeneratedCases.size === 0) {
@@ -261,7 +649,104 @@ export default function TestCases() {
     return flattenFolders(tree)
   }
 
-  // ... (rest of folder logic) ...
+  const getTestCaseCountForFolder = (folderId: string): number => {
+    if (!testcases) return 0
+    return testcases.filter((tc: any) => tc.folder_id === folderId).length
+  }
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, testcase: any) => {
+    setDraggedTestCase(testcase)
+    setIsDragging(true)
+    e.dataTransfer.effectAllowed = 'move'
+
+    // If testcase is part of selection, prepare to drag all selected
+    const testcaseIds = selectedTestCaseIds.has(String(testcase.id))
+      ? Array.from(selectedTestCaseIds)
+      : [String(testcase.id)]
+
+    e.dataTransfer.setData('text/plain', JSON.stringify(testcaseIds))
+
+    // Create a custom drag image showing count if multiple items
+    if (testcaseIds.length > 1) {
+      const dragImage = document.createElement('div')
+      dragImage.innerHTML = `
+        <div style="
+          background: #3B82F6;
+          color: white;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-weight: 600;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          font-size: 14px;
+        ">
+          ${testcaseIds.length} items
+        </div>
+      `
+      dragImage.style.position = 'absolute'
+      dragImage.style.top = '-1000px'
+      document.body.appendChild(dragImage)
+      e.dataTransfer.setDragImage(dragImage, 0, 0)
+      setTimeout(() => document.body.removeChild(dragImage), 0)
+    }
+  }
+
+  const handleDragEnd = () => {
+    setDraggedTestCase(null)
+    setIsDragging(false)
+    setDropTarget(null)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDragEnter = (e: React.DragEvent, folderId: string | null) => {
+    e.preventDefault()
+    setDropTarget(folderId)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if we're leaving the folder element itself
+    const relatedTarget = e.relatedTarget as HTMLElement
+    const currentTarget = e.currentTarget as HTMLElement
+    if (relatedTarget && !currentTarget.contains(relatedTarget)) {
+      setDropTarget(null)
+    }
+  }
+
+  const handleDrop = async (e: React.DragEvent, folderId: string | null) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    try {
+      const testcaseIdsJson = e.dataTransfer.getData('text/plain')
+      const testcaseIds = JSON.parse(testcaseIdsJson)
+
+      // Update all test cases in the drop
+      await Promise.all(
+        testcaseIds.map((id: string) =>
+          api.put(`/testcases/${id}`, { folder_id: folderId })
+        )
+      )
+
+      // Refresh test cases
+      queryClient.invalidateQueries('testcases')
+
+      // Clear selection if we dragged selected items
+      if (selectedTestCaseIds.size > 0 && testcaseIds.length > 1) {
+        setSelectedTestCaseIds(new Set())
+        setShowBulkActions(false)
+      }
+    } catch (error) {
+      console.error('Failed to move test case(s):', error)
+    } finally {
+      setDraggedTestCase(null)
+      setIsDragging(false)
+      setDropTarget(null)
+    }
+  }
 
   const getTestCaseCountForFolder = (folderId: string): number => {
     if (!testcases) return 0
