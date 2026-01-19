@@ -1605,11 +1605,13 @@ export default function TestCases() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
                   >
                     <option value="">폴더 없음</option>
-                    {folders?.map((folder: FolderType) => (
-                      <option key={folder.id} value={folder.id}>
-                        {folder.name}
-                      </option>
-                    ))}
+                    {folders
+                      ?.filter((f: FolderType) => f.project_id === selectedProjectId)
+                      .map((folder: FolderType) => (
+                        <option key={folder.id} value={folder.id}>
+                          {folder.name}
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>

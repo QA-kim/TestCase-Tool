@@ -173,7 +173,9 @@ class SupabaseCollection:
         now = datetime.utcnow().isoformat()
         if 'created_at' not in data_copy:
             data_copy['created_at'] = now
-        if 'updated_at' not in data_copy:
+        
+        # Only add updated_at if not a history table
+        if 'updated_at' not in data_copy and not self.table_name.endswith('_history'):
             data_copy['updated_at'] = now
 
         result = self.table.insert(data_copy).execute()
