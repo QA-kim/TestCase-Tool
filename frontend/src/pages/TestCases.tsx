@@ -558,7 +558,7 @@ export default function TestCases() {
           expected_result: testcase.expected_result,
           priority: testcase.priority.toLowerCase(),
           test_type: testcase.type.toLowerCase(),
-          tags: testcase.tags
+          tags: Array.isArray(testcase.tags) ? testcase.tags : (testcase.tags ? [testcase.tags] : [])
         })
       }
 

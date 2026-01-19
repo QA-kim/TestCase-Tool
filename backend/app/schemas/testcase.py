@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 
@@ -88,7 +88,7 @@ class TestCaseBase(BaseModel):
     expected_result: Optional[str] = Field(None, max_length=5000)
     priority: TestPriority = TestPriority.MEDIUM
     test_type: TestType = TestType.FUNCTIONAL
-    tags: Optional[str] = Field(None, max_length=500)
+    tags: Optional[List[str]] = Field(default_factory=list)
     folder_id: Optional[str] = None  # Firestore uses string IDs
 
     @validator('title')
@@ -114,9 +114,9 @@ class TestCaseBase(BaseModel):
 
     @validator('tags')
     def validate_tags(cls, v):
-        if v and len(v) > 500:
-            raise ValueError('태그는 500자를 초과할 수 없습니다')
-        return v.strip() if v else v
+        if v and len(v) > 10:
+            raise ValueError('태그는 10개를 초과할 수 없습니다')
+        return v
 
 
 class TestCaseCreate(TestCaseBase):
@@ -131,7 +131,7 @@ class TestCaseUpdate(BaseModel):
     expected_result: Optional[str] = Field(None, max_length=5000)
     priority: Optional[TestPriority] = None
     test_type: Optional[TestType] = None
-    tags: Optional[str] = Field(None, max_length=500)
+    tags: Optional[List[str]] = Field(default_factory=list)
     folder_id: Optional[str] = None  # Firestore uses string IDs
     change_note: Optional[str] = Field(None, max_length=1000)  # For version history
 
@@ -159,9 +159,9 @@ class TestCaseUpdate(BaseModel):
 
     @validator('tags')
     def validate_tags(cls, v):
-        if v and len(v) > 500:
-            raise ValueError('태그는 500자를 초과할 수 없습니다')
-        return v.strip() if v else v
+        if v and len(v) > 10:
+            raise ValueError('태그는 10개를 초과할 수 없습니다')
+        return v
 
     @validator('change_note')
     def validate_change_note(cls, v):
