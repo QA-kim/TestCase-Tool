@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def generate_testcases_from_prd(prd_content: str, project_name: str = "") -> List[Dict[str, Any]]:
     """
-    Generate test cases from PRD content using OpenRouter API (Google Gemma model)
+    Generate test cases from PRD content using OpenRouter API (gpt-oss-120b model)
 
     Args:
         prd_content: The PRD content to analyze
@@ -117,7 +117,7 @@ PRD에 언급된 모든 기능 영역을 포함하는 포괄적인 테스트 케
                 "X-Title": "TestCase Management System"
             },
             json={
-                "model": "google/gemma-3-27b-it:free",
+                "model": "gpt-oss-120b",
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
