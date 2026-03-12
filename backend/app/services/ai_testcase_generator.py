@@ -117,7 +117,7 @@ PRD에 언급된 모든 기능 영역을 포함하는 포괄적인 테스트 케
                 "X-Title": "TestCase Management System"
             },
             json={
-                "model": "openai/gpt-oss-120b:free",
+                "model": "google/gemini-2.5-pro:free",
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
