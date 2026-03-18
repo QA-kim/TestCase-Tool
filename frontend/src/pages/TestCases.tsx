@@ -648,6 +648,12 @@ export default function TestCases() {
     return result
   }
 
+  const getFolderTreeForProject = (projectId: string) => {
+    if (!folders) return []
+    const projectFolders = folders.filter((f: any) => String(f.project_id) === String(projectId))
+    return buildFolderTree(projectFolders as FolderType[])
+  }
+
   const getProjectFolderOptions = (projectId: string) => {
     const tree = getFolderTreeForProject(projectId)
     return flattenFolders(tree)
