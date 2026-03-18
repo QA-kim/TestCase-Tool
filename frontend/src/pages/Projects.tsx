@@ -16,7 +16,7 @@ export default function Projects() {
 
   const { data: projects, isLoading } = useQuery('projects', async () => {
     const response = await api.get('/projects')
-    return response.data
+    return Array.isArray(response.data) ? response.data : []
   })
 
   const createMutation = useMutation(

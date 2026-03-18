@@ -77,12 +77,12 @@ export default function TestCases() {
 
   const { data: projects } = useQuery('projects', async () => {
     const response = await api.get('/projects')
-    return response.data
+    return Array.isArray(response.data) ? response.data : []
   })
 
   const { data: testcases, isLoading } = useQuery('testcases', async () => {
     const response = await api.get('/testcases')
-    return response.data
+    return Array.isArray(response.data) ? response.data : []
   })
 
   // Fetch all folders (will be filtered per project when displaying)

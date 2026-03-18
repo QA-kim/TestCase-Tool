@@ -36,17 +36,17 @@ export default function TestRuns() {
 
   const { data: projects } = useQuery('projects', async () => {
     const response = await api.get('/projects')
-    return response.data
+    return Array.isArray(response.data) ? response.data : []
   })
 
   const { data: testcases } = useQuery('testcases', async () => {
     const response = await api.get('/testcases')
-    return response.data
+    return Array.isArray(response.data) ? response.data : []
   })
 
   const { data: testruns, isLoading } = useQuery('testruns', async () => {
     const response = await api.get('/testruns')
-    return response.data
+    return Array.isArray(response.data) ? response.data : []
   })
 
   const createMutation = useMutation(

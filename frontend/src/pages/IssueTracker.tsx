@@ -71,15 +71,15 @@ export default function IssueTracker() {
   const { data: issues, isLoading } = useQuery('all-issues', () => issuesApi.list())
   const { data: projects } = useQuery('projects', async () => {
     const response = await api.get('/projects')
-    return response.data
+    return Array.isArray(response.data) ? response.data : []
   })
   const { data: testruns } = useQuery('testruns', async () => {
     const response = await api.get('/testruns')
-    return response.data
+    return Array.isArray(response.data) ? response.data : []
   })
   const { data: users } = useQuery('users', async () => {
     const response = await api.get('/users')
-    return response.data
+    return Array.isArray(response.data) ? response.data : []
   })
 
   // Handle deep link from email notification
@@ -447,8 +447,8 @@ export default function IssueTracker() {
           attachments={attachments}
           onFileChange={handleFileChange}
           onRemoveAttachment={handleRemoveAttachment}
-          testruns={testruns}
-          users={users}
+          testruns={testruns ?? []}
+          users={users ?? []}
           mode="create"
         />
       )}
@@ -462,8 +462,8 @@ export default function IssueTracker() {
           onSubmit={handleEditSubmit}
           onClose={handleCloseEditModal}
           isLoading={updateMutation.isLoading}
-          testruns={testruns}
-          users={users}
+          testruns={testruns ?? []}
+          users={users ?? []}
           mode="edit"
         />
       )}
